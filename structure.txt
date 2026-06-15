@@ -1,0 +1,119 @@
+Folder PATH listing for volume Windows
+Volume serial number is 00000174 18D9:07C7
+C:\USERS\BDAND\HELIOS-VOTER-PORTAL\APP
+¦   favicon.ico
+¦   globals.css
+¦   layout.tsx
+¦   page.tsx
+¦   
++---api
+¦   +---hoa-signup
+¦           route.ts
+¦           
++---auth
+¦   +---callback
+¦           page.tsx
+¦           route.ts
+¦           
++---components
+¦       DashboardCards.tsx
+¦       LogoutButton.tsx
+¦       Navbar.tsx
+¦       ProtectedRoute.tsx
+¦       RoleEditor.tsx
+¦       SidebarLayout.tsx
+¦       
++---dashboard
+¦   ¦   page.tsx
+¦   ¦   
+¦   +---admin
+¦   ¦   ¦   page.tsx
+¦   ¦   ¦   
+¦   ¦   +---audit
+¦   ¦   ¦       page.tsx
+¦   ¦   ¦       
+¦   ¦   +---ballots
+¦   ¦   ¦       page.tsx
+¦   ¦   ¦       
+¦   ¦   +---elections
+¦   ¦   ¦   +---new
+¦   ¦   ¦           page.tsx
+¦   ¦   ¦           
+¦   ¦   +---results
+¦   ¦           page.tsx
+¦   ¦           
+¦   +---audit
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---elections
+¦   ¦   ¦   page.tsx
+¦   ¦   ¦   
+¦   ¦   +---create
+¦   ¦   ¦       page.tsx
+¦   ¦   ¦       
+¦   ¦   +---[id]
+¦   ¦       ¦   builder
+¦   ¦       ¦   page.tsx
+¦   ¦       ¦   
+¦   ¦       +---ballots
+¦   ¦       ¦   ¦   page.tsx
+¦   ¦       ¦   ¦   
+¦   ¦       ¦   +---[ballot[Id]
+¦   ¦       ¦       +---options
+¦   ¦       ¦               page.tsx
+¦   ¦       ¦               
+¦   ¦       +---edit
+¦   ¦       ¦       page.tsx
+¦   ¦       ¦       
+¦   ¦       +---live
+¦   ¦       ¦       page.tsx
+¦   ¦       ¦       
+¦   ¦       +---manage
+¦   ¦       ¦       page.tsx
+¦   ¦       ¦       
+¦   ¦       +---results
+¦   ¦               page.tsx
+¦   ¦               
+¦   +---hoa
+¦   ¦   ¦   page.tsx
+¦   ¦   ¦   
+¦   ¦   +---associations
+¦   ¦   ¦       page.tsx
+¦   ¦   ¦       
+¦   ¦   +---invites
+¦   ¦   ¦       page.tsx
+¦   ¦   ¦       
+¦   ¦   +---members
+¦   ¦           page.tsx
+¦   ¦           
+¦   +---hoa-admin
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---settings
+¦           page.tsx
+¦           
++---lib
+¦   ¦   auditLog.ts
+¦   ¦   auth.ts
+¦   ¦   getUserRole.ts
+¦   ¦   supabase.ts
+¦   ¦   supabaseServer.ts
+¦   ¦   
+¦   +---config
+¦   ¦       site.ts
+¦   ¦       
+¦   +---eligibility
+¦   ¦       checkEligibility.ts
+¦   ¦       
+¦   +---results
+¦   ¦       calculateResults.ts
+¦   ¦       
+¦   +---voting
+¦           voteService.ts
+¦           
++---login
+¦       page.tsx
+¦       
++---types
+        js-cookie.d.ts
+        
