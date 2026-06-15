@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "../lib/supabaseServer";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 import SidebarLayout from "../components/SidebarLayout";
 

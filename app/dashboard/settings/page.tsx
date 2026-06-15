@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "../../lib/supabaseServer";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import SidebarLayout from "../../components/SidebarLayout";
 
 export default async function SettingsPage() {

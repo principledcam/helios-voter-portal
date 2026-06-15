@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabaseServer";
 import { useEffect, useState } from "react";
 
 export default function Navbar() {
