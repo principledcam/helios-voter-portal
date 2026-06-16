@@ -6,7 +6,7 @@ export async function calculateResults({
   election_id: string;
 }) {
   // ----------------------------
-  // 1. Fetch election (optional but useful for validation)
+  // 1. Fetch election
   // ----------------------------
   const { data: election, error: electionError } = await supabase
     .from("elections")
@@ -38,7 +38,7 @@ export async function calculateResults({
     .select("id, label, ballot_id")
     .in(
       "id",
-      (votes || []).map((v) => v.option_id)
+      (votes || []).map((v: { option_id: string }) => v.option_id)
     );
 
   if (optionsError) {
@@ -48,7 +48,10 @@ export async function calculateResults({
   // ----------------------------
   // 4. Build lookup map
   // ----------------------------
-  const optionMap = new Map();
+  const optionMap = new Map<
+    string,
+    { label: string; ballot_id: string }
+  >();
 
   for (const opt of options || []) {
     optionMap.set(opt.id, {

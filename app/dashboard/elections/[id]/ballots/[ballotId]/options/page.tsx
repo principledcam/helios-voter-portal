@@ -12,7 +12,15 @@ const supabase = createBrowserClient(
 );
 
 export default function BallotOptionsPage() {
-  const { id, ballotId } = useParams();
+  const params = useParams();
+
+  // ----------------------------
+  // NORMALIZE PARAMS (FIX TS ERROR)
+  // ----------------------------
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const ballotId = Array.isArray(params.ballotId)
+    ? params.ballotId[0]
+    : params.ballotId;
 
   const [user, setUser] = useState<any>(null);
   const [ballot, setBallot] = useState<any>(null);
@@ -57,17 +65,22 @@ export default function BallotOptionsPage() {
       setLoading(false);
     };
 
-    load();
+    if (ballotId) load();
   }, [ballotId]);
 
   // ----------------------------
-  // VOTE HANDLER (SERVICE LAYER)
+  // VOTE HANDLER
   // ----------------------------
   const handleVote = async () => {
     if (!user || submitting) return;
 
     if (!selection) {
       alert("Please select an option");
+      return;
+    }
+
+    if (!id || !ballotId) {
+      alert("Missing election or ballot context");
       return;
     }
 
@@ -104,8 +117,8 @@ export default function BallotOptionsPage() {
   return (
     <SidebarLayout>
       <div style={{ maxWidth: 700 }}>
-
         <h2>Question</h2>
+
         <h3 style={{ marginBottom: 20 }}>
           {ballot?.title || "Untitled Question"}
         </h3>
@@ -122,7 +135,7 @@ export default function BallotOptionsPage() {
             <label key={opt.id} style={styles.optionRow}>
               <input
                 type="radio"
-                name={ballotId as string}
+                name={ballotId || "ballot"}
                 value={opt.id}
                 checked={selection === opt.id}
                 onChange={() => setSelection(opt.id)}
@@ -140,7 +153,6 @@ export default function BallotOptionsPage() {
         >
           {submitting ? "Submitting..." : "Submit Vote"}
         </button>
-
       </div>
     </SidebarLayout>
   );
