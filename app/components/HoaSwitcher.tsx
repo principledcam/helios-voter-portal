@@ -24,7 +24,7 @@ export default function HoaSwitcher() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, is_system_admin")
         .eq("id", user.id)
         .single();
 
