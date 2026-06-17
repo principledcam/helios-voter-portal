@@ -11,9 +11,12 @@ const supabase = createBrowserClient(
 export default function HoaSwitcher() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [associations, setAssociations] = useState<any[]>([]);
+  const [activeHoa, setActiveHoa] = useState<any>(null);
 
   useEffect(() => {
-    const check = async () => {
+    const load = async () => {
       const { data: auth } = await supabase.auth.getUser();
       const user = auth.user;
 
@@ -28,44 +31,94 @@ export default function HoaSwitcher() {
         .eq("id", user.id)
         .single();
 
-      // ✅ FIX: use role, NOT is_system_admin
-      setIsAdmin(profile?.role === "admin" || profile?.is_system_admin === true);
+      const admin =
+        profile?.role === "admin" || profile?.is_system_admin === true;
+
+      setIsAdmin(admin);
+
+      if (admin) {
+        const { data: hoas } = await supabase
+          .from("associations")
+          .select("*");
+
+        setAssociations(hoas || []);
+        setActiveHoa(hoas?.[0] || null);
+      }
 
       setLoading(false);
     };
 
-    check();
+    load();
   }, []);
 
   if (loading) {
-    return (
-      <div
-        style={{
-          background: "#333",
-          color: "white",
-          padding: "8px",
-          fontSize: 12,
-        }}
-      >
-        Loading HOA...
-      </div>
-    );
+    return <div style={styles.loading}>Loading HOA...</div>;
   }
 
   if (!isAdmin) return null;
 
   return (
-    <div
-      style={{
-        background: "#1e7f3e",
-        color: "white",
-        padding: "10px",
-        fontWeight: "bold",
-        borderRadius: 6,
-        marginBottom: 10,
-      }}
-    >
-      HOA SWITCHER ACTIVE (SYSTEM ADMIN)
+    <div style={styles.wrapper}>
+      <div style={styles.header} onClick={() => setOpen(!open)}>
+        🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
+      </div>
+
+      {open && (
+        <div style={styles.dropdown}>
+          {associations.map((hoa) => (
+            <div
+              key={hoa.id}
+              style={styles.item}
+              onClick={() => {
+                setActiveHoa(hoa);
+                setOpen(false);
+              }}
+            >
+              {hoa.name}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  wrapper: {
+    marginBottom: 10,
+    position: "relative",
+  },
+
+  header: {
+    background: "#1e7f3e",
+    color: "white",
+    padding: "10px",
+    fontWeight: "bold",
+    borderRadius: 6,
+    cursor: "pointer",
+  },
+
+  dropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    background: "white",
+    border: "1px solid #ddd",
+    borderRadius: 6,
+    zIndex: 999,
+  },
+
+  item: {
+    padding: 10,
+    cursor: "pointer",
+    borderBottom: "1px solid #eee",
+  },
+
+  loading: {
+    background: "#333",
+    color: "white",
+    padding: 8,
+    fontSize: 12,
+  },
+};
