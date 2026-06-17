@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
-import SidebarLayout from "../components/SidebarLayout";
 
 export default async function Dashboard() {
   const supabase = createSupabaseServerClient();
@@ -22,40 +21,38 @@ export default async function Dashboard() {
   const role = profile?.role || "member";
 
   return (
-    <SidebarLayout>
-      <div style={styles.card}>
-        <h1>Dashboard</h1>
+    <div style={styles.card}>
+      <h1>Dashboard</h1>
 
-        <p>
-          Welcome: <strong>{profile?.email}</strong>
-        </p>
+      <p>
+        Welcome: <strong>{profile?.email}</strong>
+      </p>
 
-        <p>
-          Role: <strong>{role}</strong>
-        </p>
+      <p>
+        Role: <strong>{role}</strong>
+      </p>
 
-        {role === "admin" && (
-          <div style={styles.adminBox}>
-            <h3>Admin Panel</h3>
-            <p>You have full system access.</p>
-          </div>
-        )}
+      {role === "admin" && (
+        <div style={styles.adminBox}>
+          <h3>Admin Panel</h3>
+          <p>You have full system access.</p>
+        </div>
+      )}
 
-        {role === "board" && (
-          <div style={styles.boardBox}>
-            <h3>Board Access</h3>
-            <p>Management-level access enabled.</p>
-          </div>
-        )}
+      {role === "board" && (
+        <div style={styles.boardBox}>
+          <h3>Board Access</h3>
+          <p>Management-level access enabled.</p>
+        </div>
+      )}
 
-        {role === "member" && (
-          <div style={styles.memberBox}>
-            <h3>Member Area</h3>
-            <p>Standard access only.</p>
-          </div>
-        )}
-      </div>
-    </SidebarLayout>
+      {role === "member" && (
+        <div style={styles.memberBox}>
+          <h3>Member Area</h3>
+          <p>Standard access only.</p>
+        </div>
+      )}
+    </div>
   );
 }
 

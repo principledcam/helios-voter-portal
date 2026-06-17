@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import HoaSwitcher from "@/app/components/HoaSwitcher";
 
 const BRAND = {
   primary: "#08224D",
