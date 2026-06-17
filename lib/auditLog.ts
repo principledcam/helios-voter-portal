@@ -1,4 +1,9 @@
-import { createSupabaseServerClient } from "./supabaseServer";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type AuditMetadata = {
   old_value?: any;
@@ -20,16 +25,16 @@ export async function logAudit({
   entityId: string;
   metadata?: AuditMetadata;
 }) {
-  const supabase = createSupabaseServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return;
+  if (!user) {
+    console.error("Audit skipped: no authenticated user");
+    return;
+  }
 
   if (!associationId) {
-    console.error("Missing association_id - audit skipped");
+    console.error("Audit skipped: missing association_id");
     return;
   }
 
