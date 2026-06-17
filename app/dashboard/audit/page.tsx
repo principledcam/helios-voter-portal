@@ -22,7 +22,7 @@ export default function AuditPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        alert(error.message);
+        console.error(error.message);
         setLoading(false);
         return;
       }
@@ -35,85 +35,27 @@ export default function AuditPage() {
   }, []);
 
   if (loading) {
-    return (
-      <SidebarLayout>
-        <p>Loading audit logs...</p>
-      </SidebarLayout>
-    );
+    return <p>Loading audit logs...</p>;
   }
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 900 }}>
-        <h1>🧾 Audit Log</h1>
+    <div style={{ maxWidth: 900 }}>
+      <h1>🧾 Audit Log</h1>
 
-        {logs.length === 0 ? (
-          <p>No audit logs found.</p>
-        ) : (
-          logs.map((log) => (
-            <div key={log.id} style={styles.card}>
-              <div style={styles.header}>
-                <strong>{log.action}</strong>
-                <span style={{ color: "#666" }}>
-                  {new Date(log.created_at).toLocaleString()}
-                </span>
-              </div>
+      {logs.length === 0 ? (
+        <p>No audit logs found.</p>
+      ) : (
+        logs.map((log) => (
+          <div key={log.id} style={{ padding: 12, marginBottom: 10 }}>
+            <strong>{log.action}</strong>
+            <div>User: {log.user_id}</div>
+            <div>Entity: {log.entity_type}</div>
+            <div>ID: {log.entity_id}</div>
 
-              <p>
-                <strong>Entity:</strong> {log.entity_type} ({log.entity_id})
-              </p>
-
-              <p>
-                <strong>User:</strong> {log.user_id}
-              </p>
-
-              {log.metadata && (
-                <div style={styles.meta}>
-                  {log.metadata.old_role && (
-                    <p>
-                      <strong>Old:</strong> {log.metadata.old_role}
-                    </p>
-                  )}
-
-                  {log.metadata.new_role && (
-                    <p>
-                      <strong>New:</strong> {log.metadata.new_role}
-                    </p>
-                  )}
-
-                  {log.metadata.timestamp && (
-                    <p style={{ fontSize: 12, color: "#888" }}>
-                      {log.metadata.timestamp}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-    </SidebarLayout>
+            <pre>{JSON.stringify(log.metadata, null, 2)}</pre>
+          </div>
+        ))
+      )}
+    </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  card: {
-    background: "#fff",
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 12,
-    border: "1px solid #eee",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-
-  meta: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTop: "1px solid #f2f2f2",
-  },
-};
