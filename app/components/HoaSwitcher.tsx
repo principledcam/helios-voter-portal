@@ -24,11 +24,13 @@ export default function HoaSwitcher() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("is_system_admin")
+        .select("role")
         .eq("id", user.id)
         .single();
 
-      setIsAdmin(!!profile?.is_system_admin);
+      // ✅ FIX: use role, NOT is_system_admin
+      setIsAdmin(profile?.is_system_admin === true);
+
       setLoading(false);
     };
 
@@ -37,12 +39,14 @@ export default function HoaSwitcher() {
 
   if (loading) {
     return (
-      <div style={{
-        background: "#333",
-        color: "white",
-        padding: "8px",
-        fontSize: 12
-      }}>
+      <div
+        style={{
+          background: "#333",
+          color: "white",
+          padding: "8px",
+          fontSize: 12,
+        }}
+      >
         Loading HOA...
       </div>
     );
@@ -51,14 +55,16 @@ export default function HoaSwitcher() {
   if (!isAdmin) return null;
 
   return (
-    <div style={{
-      background: "#1e7f3e",
-      color: "white",
-      padding: "10px",
-      fontWeight: "bold",
-      borderRadius: 6,
-      marginBottom: 10
-    }}>
+    <div
+      style={{
+        background: "#1e7f3e",
+        color: "white",
+        padding: "10px",
+        fontWeight: "bold",
+        borderRadius: 6,
+        marginBottom: 10,
+      }}
+    >
       HOA SWITCHER ACTIVE (SYSTEM ADMIN)
     </div>
   );
