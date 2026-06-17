@@ -69,6 +69,9 @@ export default function SidebarLayout({
           />
         </div>
 
+        {/* ✅ HOA SWITCHER (FIXED - NOW RENDERED) */}
+        <HoaSwitcher />
+
         {/* NAV */}
         <nav style={styles.nav}>
           <Link
@@ -92,7 +95,6 @@ export default function SidebarLayout({
             Audit Logs
           </Link>
 
-          {/* 🗳️ Elections */}
           <Link
             href="/dashboard/elections"
             style={{
@@ -111,7 +113,6 @@ export default function SidebarLayout({
             🗳️ Elections
           </Link>
 
-          {/* ➕ CREATE ELECTION */}
           <Link
             href="/dashboard/elections/create"
             style={{

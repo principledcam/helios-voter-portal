@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
-import SidebarLayout from "../../components/SidebarLayout";
 import RoleEditor from "../../components/RoleEditor";
 
 export default async function AdminPage() {
