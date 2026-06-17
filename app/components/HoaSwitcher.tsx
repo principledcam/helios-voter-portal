@@ -29,7 +29,7 @@ export default function HoaSwitcher() {
         .single();
 
       // ✅ FIX: use role, NOT is_system_admin
-      setIsAdmin(profile?.is_system_admin === true);
+      setIsAdmin(profile?.role === "admin" || profile?.is_system_admin === true);
 
       setLoading(false);
     };
