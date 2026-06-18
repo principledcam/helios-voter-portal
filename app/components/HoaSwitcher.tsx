@@ -38,11 +38,11 @@ export default function HoaSwitcher() {
 
       if (admin) {
         const { data: hoas, error } = await supabase
-  .from("associations")
-  .select("*");
+          .from("associations")
+          .select("*");
 
-console.log("HOAS:", hoas);
-console.log("HOA ERROR:", error);
+        console.log("HOAS RAW:", hoas);
+        console.log("HOA ERROR:", error);
 
         setAssociations(hoas || []);
         setActiveHoa(hoas?.[0] || null);
@@ -64,6 +64,11 @@ console.log("HOA ERROR:", error);
     <div style={styles.wrapper}>
       <div style={styles.header} onClick={() => setOpen(!open)}>
         🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
+      </div>
+
+      {/* 🔥 DEBUG OUTPUT (TEMPORARY) */}
+      <div style={{ background: "yellow", padding: 10, marginTop: 8 }}>
+        COUNT: {associations.length}
       </div>
 
       {open && (
