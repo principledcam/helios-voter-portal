@@ -9,7 +9,6 @@ const supabase = createBrowserClient(
 );
 
 export default function HoaSwitcher() {
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [associations, setAssociations] = useState<any[]>([]);
@@ -31,22 +30,36 @@ export default function HoaSwitcher() {
         .eq("id", user.id)
         .single();
 
-      const admin =
-        profile?.role === "admin" || profile?.is_system_admin === true;
+      const isSystemAdmin = profile?.is_system_admin === true;
+      const isHoaAdmin = profile?.role === "hoa_admin";
+      const isMember = profile?.role === "member";
 
-      setIsAdmin(admin);
+      let query = supabase
+        .from("association_members")
+        .select(`
+          association_id,
+          associations:association_id (
+            id,
+            name
+          )
+        `)
+        .eq("user_id", user.id);
 
-      if (admin) {
-        const { data: hoas, error } = await supabase
-          .from("associations")
-          .select("*");
-
-        console.log("HOAS RAW:", hoas);
-        console.log("HOA ERROR:", error);
-
-        setAssociations(hoas || []);
-        setActiveHoa(hoas?.[0] || null);
+      // 🔥 ROLE FILTERING LOGIC (CRITICAL)
+      if (isHoaAdmin || isMember) {
+        query = query.eq("role", profile?.role);
       }
+
+      const { data, error } = await query;
+
+      console.log("HOA SWITCHER DATA:", data);
+      console.log("HOA SWITCHER ERROR:", error);
+
+      const formatted =
+        data?.map((m: any) => m.associations).filter(Boolean) || [];
+
+      setAssociations(formatted);
+      setActiveHoa(formatted[0] || null);
 
       setLoading(false);
     };
@@ -58,17 +71,12 @@ export default function HoaSwitcher() {
     return <div style={styles.loading}>Loading HOA...</div>;
   }
 
-  if (!isAdmin) return null;
+  if (associations.length === 0) return null;
 
   return (
     <div style={styles.wrapper}>
       <div style={styles.header} onClick={() => setOpen(!open)}>
         🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
-      </div>
-
-      {/* 🔥 DEBUG OUTPUT (TEMPORARY) */}
-      <div style={{ background: "yellow", padding: 10, marginTop: 8 }}>
-        COUNT: {associations.length}
       </div>
 
       {open && (
