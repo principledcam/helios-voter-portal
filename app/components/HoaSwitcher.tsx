@@ -44,7 +44,7 @@ export default function HoaSwitcher() {
         `)
         .eq("user_id", user.id);
 
-      // role-based filtering (kept as-is)
+      // role-based filtering
       if (isHoaAdmin || isMember) {
         query = query.eq("role", profile?.role);
       }
@@ -132,6 +132,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 10,
     cursor: "pointer",
     borderBottom: "1px solid #eee",
+    color: "#28A8A8",
+    fontWeight: 500,
   },
 
   loading: {
