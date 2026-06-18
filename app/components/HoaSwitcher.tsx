@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useHoa } from "@/app/context/HoaContext";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,7 +13,9 @@ export default function HoaSwitcher() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [associations, setAssociations] = useState<any[]>([]);
-  const [activeHoa, setActiveHoa] = useState<any>(null);
+
+  // ✅ GLOBAL HOA STATE (NEW)
+  const { activeHoa, setActiveHoa } = useHoa();
 
   useEffect(() => {
     const load = async () => {
@@ -58,12 +61,17 @@ export default function HoaSwitcher() {
         data?.map((m: any) => m.associations).filter(Boolean) || [];
 
       setAssociations(formatted);
-      setActiveHoa(formatted[0] || null);
+
+      // ✅ ONLY SET DEFAULT IF NONE SELECTED GLOBALLY
+      if (!activeHoa && formatted.length > 0) {
+        setActiveHoa(formatted[0]);
+      }
 
       setLoading(false);
     };
 
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -85,7 +93,7 @@ export default function HoaSwitcher() {
               key={hoa.id}
               style={styles.item}
               onClick={() => {
-                setActiveHoa(hoa);
+                setActiveHoa(hoa); // ✅ GLOBAL UPDATE
                 setOpen(false);
               }}
             >

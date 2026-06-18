@@ -1,4 +1,5 @@
 import "./globals.css";
+import { HoaProvider } from "@/app/context/HoaContext";
 
 export const metadata = {
   title: "Helios App",
@@ -13,9 +14,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body style={styles.body}>
-        <div style={styles.shell}>
-          {children}
-        </div>
+        <HoaProvider>
+          <div style={styles.shell}>{children}</div>
+        </HoaProvider>
       </body>
     </html>
   );

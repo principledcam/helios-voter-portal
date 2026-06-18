@@ -1,61 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { useHoaQuery } from "@/app/hooks/useHoaQuery";
 
 export default function AuditPage() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error(error.message);
-        setLoading(false);
-        return;
-      }
-
-      setLogs(data || []);
-      setLoading(false);
-    };
-
-    load();
-  }, []);
+  const { data, loading, error } = useHoaQuery("audit_logs", {
+    select: "*",
+  });
 
   if (loading) {
-    return <p>Loading audit logs...</p>;
+    return (
+      <div style={{ padding: 20 }}>
+        Loading audit logs...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: "red" }}>
+        Error loading audit logs
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: 900 }}>
-      <h1>🧾 Audit Log</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Audit Logs</h1>
 
-      {logs.length === 0 ? (
-        <p>No audit logs found.</p>
-      ) : (
-        logs.map((log) => (
-          <div key={log.id} style={{ padding: 12, marginBottom: 10 }}>
-            <strong>{log.action}</strong>
-            <div>User: {log.user_id}</div>
-            <div>Entity: {log.entity_type}</div>
-            <div>ID: {log.entity_id}</div>
-
-            <pre>{JSON.stringify(log.metadata, null, 2)}</pre>
-          </div>
-        ))
-      )}
+      <div style={{ marginTop: 20 }}>
+        {data.length === 0 ? (
+          <p>No audit logs found for this HOA.</p>
+        ) : (
+          data.map((log: any) => (
+            <div
+              key={log.id}
+              style={{
+                padding: 10,
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <strong>{log.action}</strong>
+              <div style={{ fontSize: 12, color: "#666" }}>
+                {log.created_at}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

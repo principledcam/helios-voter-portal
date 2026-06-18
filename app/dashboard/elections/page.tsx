@@ -18,7 +18,6 @@ useEffect(() => {
 const load = async () => {
 setLoading(true);
 
-```
   const { data, error } = await supabase
     .from("elections")
     .select("*")
@@ -33,13 +32,11 @@ setLoading(true);
 };
 
 load();
-```
 
 }, []);
 
 return ( <div style={styles.container}> <h1 style={styles.title}>Elections</h1>
 
-```
   {loading && <p>Loading...</p>}
 
   {!loading && elections.length === 0 && (
@@ -66,7 +63,6 @@ return ( <div style={styles.container}> <h1 style={styles.title}>Elections</h1>
     </div>
   ))}
 </div>
-```
 
 );
 }
@@ -86,7 +82,6 @@ borderRadius: 10,
 background: "#fff",
 marginBottom: 12,
 cursor: "pointer",
-transition: "0.2s",
 },
 meta: {
 fontSize: 13,
