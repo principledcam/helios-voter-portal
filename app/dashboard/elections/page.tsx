@@ -75,12 +75,10 @@ const styles: Record<string, React.CSSProperties> = {
 container: {
 maxWidth: 800,
 },
-
 title: {
 fontSize: 26,
 marginBottom: 20,
 },
-
 card: {
 padding: 16,
 border: "1px solid #eee",
@@ -90,13 +88,11 @@ marginBottom: 12,
 cursor: "pointer",
 transition: "0.2s",
 },
-
 meta: {
 fontSize: 13,
 color: "#666",
 marginTop: 4,
 },
-
 id: {
 fontSize: 11,
 color: "#aaa",
