@@ -3,132 +3,127 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import SidebarLayout from "@/app/components/SidebarLayout";
 
 const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+process.env.NEXT_PUBLIC_SUPABASE_URL!,
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default function CreateElectionPage() {
-  const router = useRouter();
+const router = useRouter();
 
-  const [user, setUser] = useState<any>(null);
+const [user, setUser] = useState<any>(null);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+const [title, setTitle] = useState("");
+const [description, setDescription] = useState("");
 
-  const [anonymous, setAnonymous] = useState(true);
-  const [allowMultipleVotes, setAllowMultipleVotes] = useState(false);
+const [anonymous, setAnonymous] = useState(true);
+const [allowMultipleVotes, setAllowMultipleVotes] = useState(false);
 
-  const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(false);
 
-  // ----------------------------
-  // AUTH USER
-  // ----------------------------
-  const loadUser = async () => {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-    return data.user;
-  };
+const loadUser = async () => {
+const { data } = await supabase.auth.getUser();
+setUser(data.user);
+return data.user;
+};
 
-  // ----------------------------
-  // CREATE ELECTION (CLEAN FLOW)
-  // ----------------------------
-  const createElection = async () => {
-    if (!title) return alert("Title required");
+const createElection = async () => {
+if (!title) return alert("Title required");
 
-    setLoading(true);
+```
+setLoading(true);
 
-    const currentUser = user || (await loadUser());
+const currentUser = user || (await loadUser());
 
-    if (!currentUser) {
-      alert("You must be logged in");
-      setLoading(false);
-      return;
-    }
+if (!currentUser) {
+  alert("You must be logged in");
+  setLoading(false);
+  return;
+}
 
-    const { data, error } = await supabase
-      .from("elections")
-      .insert({
-        title,
-        description,
-        user_id: currentUser.id,
-        status: "draft",
-        settings: {
-          anonymous,
-          allow_multiple_votes: allowMultipleVotes,
-        },
-      })
-      .select()
-      .single();
+const { data, error } = await supabase
+  .from("elections")
+  .insert({
+    title,
+    description,
+    user_id: currentUser.id,
+    status: "draft",
+    settings: {
+      anonymous,
+      allow_multiple_votes: allowMultipleVotes,
+    },
+  })
+  .select()
+  .single();
 
-    setLoading(false);
+setLoading(false);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+if (error) {
+  alert(error.message);
+  return;
+}
 
-    // 🔥 SINGLE SOURCE OF TRUTH FLOW
-    router.push(`/dashboard/elections/${data.id}/edit`);
-  };
+router.push(`/dashboard/elections/${data.id}/edit`);
+```
 
-  return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 800 }}>
-        <h1>Create Election</h1>
+};
 
-        <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-          <h3>Step 1: Election Setup</h3>
+return (
+<div style={{ maxWidth: 800 }}> <h1>Create Election</h1>
 
-          <input
-            placeholder="Election title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            style={{ width: "100%", padding: 10, marginBottom: 10 }}
-          />
+```
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+    <h3>Step 1: Election Setup</h3>
 
-          <textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            style={{ width: "100%", padding: 10, marginBottom: 10 }}
-          />
+    <input
+      placeholder="Election title"
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+      style={{ width: "100%", padding: 10, marginBottom: 10 }}
+    />
 
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <input
-              type="checkbox"
-              checked={anonymous}
-              onChange={(e) => setAnonymous(e.target.checked)}
-            />
-            Anonymous voting
-          </label>
+    <textarea
+      placeholder="Description"
+      value={description}
+      onChange={(e) => setDescription(e.target.value)}
+      style={{ width: "100%", padding: 10, marginBottom: 10 }}
+    />
 
-          <label style={{ display: "block", marginBottom: 15 }}>
-            <input
-              type="checkbox"
-              checked={allowMultipleVotes}
-              onChange={(e) => setAllowMultipleVotes(e.target.checked)}
-            />
-            Allow multiple votes
-          </label>
+    <label style={{ display: "block", marginBottom: 8 }}>
+      <input
+        type="checkbox"
+        checked={anonymous}
+        onChange={(e) => setAnonymous(e.target.checked)}
+      />
+      Anonymous voting
+    </label>
 
-          <button
-            onClick={createElection}
-            style={{
-              padding: 10,
-              background: "#08224D",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
-          >
-            {loading ? "Creating..." : "Create Election"}
-          </button>
-        </div>
-      </div>
-    </SidebarLayout>
-  );
+    <label style={{ display: "block", marginBottom: 15 }}>
+      <input
+        type="checkbox"
+        checked={allowMultipleVotes}
+        onChange={(e) => setAllowMultipleVotes(e.target.checked)}
+      />
+      Allow multiple votes
+    </label>
+
+    <button
+      onClick={createElection}
+      style={{
+        padding: 10,
+        background: "#08224D",
+        color: "#fff",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+      }}
+    >
+      {loading ? "Creating..." : "Create Election"}
+    </button>
+  </div>
+</div>
+```
+
+);
 }
