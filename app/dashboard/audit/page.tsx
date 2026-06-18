@@ -1,53 +1,52 @@
 "use client";
 
-import { useEffect } from "react";
 import { useHoaQuery } from "@/app/hooks/useHoaQuery";
+import { formatAudit } from "@/lib/audit/formatter";
 
 export default function AuditPage() {
   const { data, loading, error } = useHoaQuery("audit_logs", {
     select: "*",
   });
 
-  if (loading) {
-    return (
-      <div style={{ padding: 20 }}>
-        Loading audit logs...
-      </div>
-    );
-  }
+  if (loading) return <p style={{ padding: 20 }}>Loading audit logs...</p>;
 
-  if (error) {
-    return (
-      <div style={{ padding: 20, color: "red" }}>
-        Error loading audit logs
-      </div>
-    );
-  }
+  if (error)
+    return <p style={{ padding: 20, color: "red" }}>Error loading audit logs</p>;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Audit Logs</h1>
+    <div style={{ padding: 20, maxWidth: 900 }}>
+      <h1>🧠 Enterprise Audit Log</h1>
 
-      <div style={{ marginTop: 20 }}>
-        {data.length === 0 ? (
-          <p>No audit logs found for this HOA.</p>
-        ) : (
-          data.map((log: any) => (
-            <div
-              key={log.id}
-              style={{
-                padding: 10,
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <strong>{log.action}</strong>
-              <div style={{ fontSize: 12, color: "#666" }}>
-                {log.created_at}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {data.length === 0 && <p>No logs found</p>}
+
+      {data.map((log: any) => (
+        <div
+          key={log.id}
+          style={{
+            padding: 12,
+            borderBottom: "1px solid #eee",
+            marginBottom: 10,
+          }}
+        >
+          <strong>{formatAudit(log)}</strong>
+
+          <div style={{ fontSize: 12, color: "#666" }}>
+            {new Date(log.created_at).toLocaleString()}
+          </div>
+
+          {log.before_state && (
+            <pre style={{ fontSize: 11, color: "#999" }}>
+              BEFORE: {JSON.stringify(log.before_state, null, 2)}
+            </pre>
+          )}
+
+          {log.after_state && (
+            <pre style={{ fontSize: 11, color: "#999" }}>
+              AFTER: {JSON.stringify(log.after_state, null, 2)}
+            </pre>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
