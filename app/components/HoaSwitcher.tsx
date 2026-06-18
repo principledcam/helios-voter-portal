@@ -30,7 +30,6 @@ export default function HoaSwitcher() {
         .eq("id", user.id)
         .single();
 
-      const isSystemAdmin = profile?.is_system_admin === true;
       const isHoaAdmin = profile?.role === "hoa_admin";
       const isMember = profile?.role === "member";
 
@@ -45,7 +44,7 @@ export default function HoaSwitcher() {
         `)
         .eq("user_id", user.id);
 
-      // 🔥 ROLE FILTERING LOGIC (CRITICAL)
+      // role-based filtering (kept as-is)
       if (isHoaAdmin || isMember) {
         query = query.eq("role", profile?.role);
       }
@@ -106,12 +105,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   header: {
-    background: "#1e7f3e",
-    color: "white",
+    background: "#28A8A8",
+    color: "#ffffff",
     padding: "10px",
     fontWeight: "bold",
     borderRadius: 6,
     cursor: "pointer",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
   dropdown: {
@@ -119,10 +121,11 @@ const styles: Record<string, React.CSSProperties> = {
     top: "100%",
     left: 0,
     right: 0,
-    background: "white",
-    border: "1px solid #ddd",
+    background: "#ffffff",
+    border: "1px solid rgba(40,168,168,0.25)",
     borderRadius: 6,
     zIndex: 999,
+    overflow: "hidden",
   },
 
   item: {
