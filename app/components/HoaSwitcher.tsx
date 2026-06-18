@@ -37,9 +37,12 @@ export default function HoaSwitcher() {
       setIsAdmin(admin);
 
       if (admin) {
-        const { data: hoas } = await supabase
-          .from("associations")
-          .select("*");
+        const { data: hoas, error } = await supabase
+  .from("associations")
+  .select("*");
+
+console.log("HOAS:", hoas);
+console.log("HOA ERROR:", error);
 
         setAssociations(hoas || []);
         setActiveHoa(hoas?.[0] || null);
