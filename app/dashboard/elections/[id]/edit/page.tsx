@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 
 import {
@@ -230,8 +229,7 @@ export default function EditElectionPage() {
   };
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 900 }}>
+          <div style={{ maxWidth: 900 }}>
         <h1>🧠 Admin Control Center</h1>
 
         <div>Status: {status.toUpperCase()}</div>
@@ -272,6 +270,5 @@ export default function EditElectionPage() {
           Go to Voting View →
         </button>
       </div>
-    </SidebarLayout>
-  );
+      );
 }

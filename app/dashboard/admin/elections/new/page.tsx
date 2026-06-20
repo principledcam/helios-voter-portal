@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 
 const supabase = createBrowserClient(
@@ -69,8 +68,7 @@ export default function CreateElectionPage() {
   };
 
   return (
-    <SidebarLayout>
-      <div style={styles.card}>
+          <div style={styles.card}>
         <h1>Create Election</h1>
 
         <input
@@ -107,8 +105,7 @@ export default function CreateElectionPage() {
           {loading ? "Creating..." : "Create Election"}
         </button>
       </div>
-    </SidebarLayout>
-  );
+      );
 }
 
 const styles: Record<string, React.CSSProperties> = {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 
 const supabase = createBrowserClient(
@@ -76,8 +75,7 @@ export default function AdminResultsPage() {
   // UI
   // ----------------------------
   return (
-    <SidebarLayout>
-      <div style={styles.card}>
+          <div style={styles.card}>
         <h1>Live Election Results</h1>
         <p>Real-time vote tracking</p>
 
@@ -97,8 +95,7 @@ export default function AdminResultsPage() {
           ))}
         </div>
       </div>
-    </SidebarLayout>
-  );
+      );
 }
 
 // ----------------------------
