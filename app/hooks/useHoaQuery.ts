@@ -19,7 +19,7 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
-  // 🧠 HARD GUARD: prevents flicker + duplicate fetch loops
+  // 🧠 HARD GUARD: prevents duplicate fetch loops
   const didFetch = useRef(false);
 
   // =========================
@@ -27,6 +27,13 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
   // =========================
   const fetchData = useCallback(async () => {
     setError(null);
+
+    // 🚨 FINAL FIX — BLOCK QUERY UNTIL HOA IS READY
+    if (!activeHoa?.id) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
 
     // 🔥 ONLY SHOW LOADING ON FIRST EVER FETCH
     if (!didFetch.current) {
@@ -39,9 +46,7 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
         .select(options?.select || "*");
 
       // HOA SCOPING
-      if (activeHoa?.id) {
-        query = query.eq("association_id", activeHoa.id);
-      }
+      query = query.eq("association_id", activeHoa.id);
 
       // OPTIONAL FILTERS
       if (options?.filters) {

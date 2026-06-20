@@ -29,11 +29,15 @@ export default function HOAAdminPortal() {
   };
 
   const approveUser = async (user_id: string, association_id: string) => {
-    await supabase.from("association_members").insert({
-      user_id,
-      association_id,
-      role: "member",
-    });
+    await supabase
+  .from("association_members")
+  .upsert({
+    user_id,
+    association_id,
+    role,
+  }, {
+    onConflict: "user_id,association_id"
+  });
 
     await load();
   };

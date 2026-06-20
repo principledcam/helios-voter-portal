@@ -20,17 +20,29 @@ export function HoaProvider({ children }: { children: React.ReactNode }) {
   // Load saved HOA from browser
   useEffect(() => {
     const saved = localStorage.getItem("activeHoa");
+
     if (saved) {
-      setActiveHoaState(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+
+      // 🟢 HARD GUARD — prevent invalid HOA from loading
+      if (parsed?.id) {
+        setActiveHoaState(parsed);
+      }
     }
   }, []);
 
+  // 🟢 STABLE SETTER (prevents undefined state leaks)
   const setActiveHoa = (hoa: Hoa | null) => {
+    // 🚨 CRITICAL RULE: NEVER allow undefined into state
+    if (!hoa?.id) {
+      setActiveHoaState(null);
+      localStorage.removeItem("activeHoa");
+      return;
+    }
+
     setActiveHoaState(hoa);
 
-    if (hoa) {
-      localStorage.setItem("activeHoa", JSON.stringify(hoa));
-    }
+    localStorage.setItem("activeHoa", JSON.stringify(hoa));
   };
 
   return (

@@ -8,6 +8,13 @@ import { formatAudit } from "@/lib/audit/formatter";
 export default function AuditPage() {
   const { activeHoa } = useHoa();
 
+  // 🔍 DEBUG: track HOA changes
+  useEffect(() => {
+    console.log("ACTIVE HOA CHANGED:", activeHoa);
+  }, [activeHoa]);
+
+  console.log("ACTIVE HOA:", activeHoa);
+
   const { data, loading, error, refetch } = useHoaQuery("audit_logs", {
     select: "*",
     filters: (query: any) =>
@@ -16,10 +23,11 @@ export default function AuditPage() {
         : query,
   });
 
-  // single refresh on HOA switch
+  // 🔄 refresh only when HOA changes
   useEffect(() => {
+    if (!activeHoa?.id) return;
     refetch();
-  }, [activeHoa?.id]);
+  }, [activeHoa?.id, refetch]);
 
   if (loading) {
     return (
@@ -37,7 +45,7 @@ export default function AuditPage() {
     );
   }
 
-  // 🔥 FIX: include ALL logs but still show HOA context first
+  // 🔥 FIX: safe filtering (prevents cross-HOA bleed)
   const filteredData = activeHoa?.id
     ? data.filter((log: any) => log.association_id === activeHoa.id)
     : data;
