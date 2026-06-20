@@ -10,29 +10,18 @@ export default function AuditPage() {
 
   const { data, loading, error, refetch } = useHoaQuery("audit_logs", {
     select: "*",
-    filters: (query: any) => {
-      let q = query;
-
-      if (activeHoa?.id) {
-        q = q.eq("association_id", activeHoa.id);
-      }
-
-      return q.order("created_at", { ascending: false });
-    },
+    filters: (query: any) =>
+      activeHoa?.id
+        ? query
+            .eq("association_id", activeHoa.id)
+            .order("created_at", { ascending: false })
+        : query.order("created_at", { ascending: false }),
   });
 
-  // 🔄 LIVE REFRESH (FIXES STALE DATA)
+  // ✅ FIXED: NO INTERVAL, NO LOOP
   useEffect(() => {
-    if (!activeHoa?.id) return;
-
     refetch();
-
-    const interval = setInterval(() => {
-      refetch();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [activeHoa?.id, refetch]);
+  }, [activeHoa?.id]);
 
   if (loading) {
     return <p style={{ padding: 20 }}>Loading audit logs...</p>;
@@ -52,13 +41,13 @@ export default function AuditPage() {
 
       {!activeHoa?.id && (
         <p style={{ color: "orange" }}>
-          No HOA selected — showing system-wide logs (if permitted)
+          No HOA selected
         </p>
       )}
 
-      {data?.length === 0 && <p>No logs found</p>}
+      {data.length === 0 && <p>No logs found</p>}
 
-      {data?.map((log: any) => (
+      {data.map((log: any) => (
         <div
           key={log.id}
           style={{
@@ -75,13 +64,13 @@ export default function AuditPage() {
 
           {log.before_state && (
             <pre style={{ fontSize: 11, color: "#999" }}>
-              BEFORE: {JSON.stringify(log.before_state, null, 2)}
+              {JSON.stringify(log.before_state, null, 2)}
             </pre>
           )}
 
           {log.after_state && (
             <pre style={{ fontSize: 11, color: "#999" }}>
-              AFTER: {JSON.stringify(log.after_state, null, 2)}
+              {JSON.stringify(log.after_state, null, 2)}
             </pre>
           )}
         </div>

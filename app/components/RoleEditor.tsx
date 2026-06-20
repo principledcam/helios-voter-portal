@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { logAudit } from "@/lib/auditLog";
+import { logAudit } from "@/lib/audit/logAudit";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,11 +17,12 @@ export default function RoleEditor({ user, activeHoaId }: any) {
     setLoading(true);
 
     const oldRole = user.role;
+    const newRole = role;
 
     // 1. Update profile role
     const { error } = await supabase
       .from("profiles")
-      .update({ role })
+      .update({ role: newRole })
       .eq("id", user.id);
 
     if (error) {
@@ -30,7 +31,7 @@ export default function RoleEditor({ user, activeHoaId }: any) {
       return;
     }
 
-    // 2. Get auth user (for metadata consistency)
+    // 2. Get auth user (for audit consistency)
     const { data: userData } = await supabase.auth.getUser();
     const authUser = userData?.user;
 
@@ -40,17 +41,17 @@ export default function RoleEditor({ user, activeHoaId }: any) {
       return;
     }
 
-    // 3. ✅ FIXED AUDIT LOG (USES CENTRALIZED SYSTEM)
+    // 3. 🔥 REAL ENTERPRISE AUDIT LOG
     try {
       await logAudit({
-        associationId: activeHoaId, // 🔥 CRITICAL FIX
+        supabase,
         action: "role_updated",
-        entityType: "user",
-        entityId: user.id,
-        metadata: {
-          old_value: oldRole,
-          new_value: role,
-        },
+        user_id: user.id,
+        association_id: activeHoaId,
+        entity_type: "user",
+        entity_id: user.id,
+        before_state: { role: oldRole },
+        after_state: { role: newRole },
       });
     } catch (err: any) {
       console.error("Audit log failed:", err.message);

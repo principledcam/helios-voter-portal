@@ -1,7 +1,5 @@
-"use client";
-
 import { useHoa } from "@/app/context/HoaContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
 const supabase = createBrowserClient(
@@ -18,27 +16,34 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
   const { activeHoa } = useHoa();
 
   const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
-  const fetchData = async () => {
-    setLoading(true);
+  // 🧠 HARD GUARD: prevents flicker + duplicate fetch loops
+  const didFetch = useRef(false);
+
+  // =========================
+  // FETCH DATA (STABLE CORE)
+  // =========================
+  const fetchData = useCallback(async () => {
     setError(null);
 
-    try {
-      let query = supabase.from(table).select(options?.select || "*");
+    // 🔥 ONLY SHOW LOADING ON FIRST EVER FETCH
+    if (!didFetch.current) {
+      setLoading(true);
+    }
 
-      /**
-       * 🔥 AUTO HOA FILTER
-       * Applies only if table supports association_id
-       */
+    try {
+      let query = supabase
+        .from(table)
+        .select(options?.select || "*");
+
+      // HOA SCOPING
       if (activeHoa?.id) {
         query = query.eq("association_id", activeHoa.id);
       }
 
-      /**
-       * 🔧 Optional extra filters
-       */
+      // OPTIONAL FILTERS
       if (options?.filters) {
         query = options.filters(query);
       }
@@ -51,19 +56,30 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
     } catch (err) {
       setError(err);
     } finally {
+      // 🔥 MARK FIRST LOAD COMPLETE
+      didFetch.current = true;
       setLoading(false);
     }
-  };
+  }, [table, activeHoa?.id]);
 
+  // =========================
+  // INITIAL LOAD
+  // =========================
   useEffect(() => {
     fetchData();
-    // re-run when HOA changes
-  }, [activeHoa?.id]);
+  }, [fetchData]);
+
+  // =========================
+  // MANUAL REFRESH
+  // =========================
+  const refetch = useCallback(() => {
+    return fetchData();
+  }, [fetchData]);
 
   return {
     data,
     loading,
     error,
-    refetch: fetchData,
+    refetch,
   };
 }
