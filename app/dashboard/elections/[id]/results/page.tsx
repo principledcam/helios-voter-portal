@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 
 import {
@@ -123,15 +122,12 @@ export default function ResultsPage() {
 
   if (loading) {
     return (
-      <SidebarLayout>
-        <p>Loading results...</p>
-      </SidebarLayout>
-    );
+              <p>Loading results...</p>
+          );
   }
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 900 }}>
+          <div style={{ maxWidth: 900 }}>
 
         <h1>📊 Live Results</h1>
 
@@ -212,6 +208,5 @@ export default function ResultsPage() {
           );
         })}
       </div>
-    </SidebarLayout>
-  );
+      );
 }

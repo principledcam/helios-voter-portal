@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 
 const supabase = createBrowserClient(
@@ -117,15 +116,12 @@ export default function LiveElectionDashboard() {
   // ----------------------------
   if (loading) {
     return (
-      <SidebarLayout>
-        <p>Loading live dashboard...</p>
-      </SidebarLayout>
-    );
+              <p>Loading live dashboard...</p>
+          );
   }
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 900 }}>
+          <div style={{ maxWidth: 900 }}>
 
         {/* HEADER */}
         <h1>📊 Live Election Dashboard</h1>
@@ -163,8 +159,7 @@ export default function LiveElectionDashboard() {
         )}
 
       </div>
-    </SidebarLayout>
-  );
+      );
 }
 
 // ----------------------------

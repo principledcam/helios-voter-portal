@@ -1,25 +1,64 @@
 "use client";
 
+import { useEffect } from "react";
+import { useHoa } from "@/app/context/HoaContext";
 import { useHoaQuery } from "@/app/hooks/useHoaQuery";
 import { formatAudit } from "@/lib/audit/formatter";
 
 export default function AuditPage() {
-  const { data, loading, error } = useHoaQuery("audit_logs", {
+  const { activeHoa } = useHoa();
+
+  const { data, loading, error, refetch } = useHoaQuery("audit_logs", {
     select: "*",
+    filters: (query: any) => {
+      let q = query;
+
+      if (activeHoa?.id) {
+        q = q.eq("association_id", activeHoa.id);
+      }
+
+      return q.order("created_at", { ascending: false });
+    },
   });
 
-  if (loading) return <p style={{ padding: 20 }}>Loading audit logs...</p>;
+  // 🔄 LIVE REFRESH (FIXES STALE DATA)
+  useEffect(() => {
+    if (!activeHoa?.id) return;
 
-  if (error)
-    return <p style={{ padding: 20, color: "red" }}>Error loading audit logs</p>;
+    refetch();
+
+    const interval = setInterval(() => {
+      refetch();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [activeHoa?.id, refetch]);
+
+  if (loading) {
+    return <p style={{ padding: 20 }}>Loading audit logs...</p>;
+  }
+
+  if (error) {
+    return (
+      <p style={{ padding: 20, color: "red" }}>
+        Error loading audit logs
+      </p>
+    );
+  }
 
   return (
     <div style={{ padding: 20, maxWidth: 900 }}>
       <h1>🧠 Enterprise Audit Log</h1>
 
-      {data.length === 0 && <p>No logs found</p>}
+      {!activeHoa?.id && (
+        <p style={{ color: "orange" }}>
+          No HOA selected — showing system-wide logs (if permitted)
+        </p>
+      )}
 
-      {data.map((log: any) => (
+      {data?.length === 0 && <p>No logs found</p>}
+
+      {data?.map((log: any) => (
         <div
           key={log.id}
           style={{

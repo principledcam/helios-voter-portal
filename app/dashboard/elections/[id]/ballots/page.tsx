@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import SidebarLayout from "@/app/components/SidebarLayout";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,8 +37,7 @@ export default function BallotListPage() {
   }, [id]);
 
   return (
-    <SidebarLayout>
-      <div style={styles.card}>
+          <div style={styles.card}>
         <h1>Ballots</h1>
 
         <p style={{ color: "#666" }}>
@@ -62,8 +60,7 @@ export default function BallotListPage() {
           ))
         )}
       </div>
-    </SidebarLayout>
-  );
+      );
 }
 
 const styles: Record<string, React.CSSProperties> = {

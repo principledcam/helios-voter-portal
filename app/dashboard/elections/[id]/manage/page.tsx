@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import SidebarLayout from "@/app/components/SidebarLayout";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,8 +57,7 @@ export default function ManageElectionPage() {
   };
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 700 }}>
+          <div style={{ maxWidth: 700 }}>
 
         <h1>{election?.title}</h1>
         <p>{election?.description}</p>
@@ -116,6 +114,5 @@ export default function ManageElectionPage() {
         ))}
 
       </div>
-    </SidebarLayout>
-  );
+      );
 }

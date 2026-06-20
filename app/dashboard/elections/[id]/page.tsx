@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 import { submitVote } from "@/lib/voting/voteService";
 
@@ -38,9 +37,6 @@ export default function EnterpriseElectionConsole() {
 
   const allowMulti = election?.settings?.allow_multiple_votes;
 
-  // ============================
-  // CONTROL ROOM STATE
-  // ============================
   const [liveFeed, setLiveFeed] = useState<any[]>([]);
   const [votesPerMinute, setVotesPerMinute] = useState(0);
   const [voteHistory, setVoteHistory] = useState<any[]>([]);
@@ -107,7 +103,7 @@ export default function EnterpriseElectionConsole() {
   }, [id]);
 
   // ----------------------------
-  // REALTIME CONTROL ROOM ENGINE
+  // REALTIME ENGINE
   // ----------------------------
   useEffect(() => {
     const channel = supabase
@@ -146,7 +142,7 @@ export default function EnterpriseElectionConsole() {
   }, [id]);
 
   // ----------------------------
-  // ANALYTICS ENGINE
+  // ANALYTICS
   // ----------------------------
   useEffect(() => {
     if (!voteHistory.length) return;
@@ -160,9 +156,6 @@ export default function EnterpriseElectionConsole() {
     setLastSpike(recent.length > 10);
   }, [voteHistory]);
 
-  // ----------------------------
-  // RESULTS ENGINE
-  // ----------------------------
   const results = (votes || []).reduce((acc: any, v: any) => {
     acc[v.option_id] = (acc[v.option_id] || 0) + 1;
     return acc;
@@ -170,9 +163,6 @@ export default function EnterpriseElectionConsole() {
 
   const totalVotes = votes.length;
 
-  // ----------------------------
-  // SUBMIT VOTE
-  // ----------------------------
   const submitVotes = async () => {
     if (!user || submitting) return;
 
@@ -196,261 +186,132 @@ export default function EnterpriseElectionConsole() {
   };
 
   if (loading) {
-    return (
-      <SidebarLayout>
-        <p>Loading Enterprise Console...</p>
-      </SidebarLayout>
-    );
+    return <p>Loading Enterprise Console...</p>;
   }
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 1000 }}>
+    <div style={{ maxWidth: 1000 }}>
+      <h1>🏛️ Enterprise Election Console</h1>
+      <p>{election?.title}</p>
 
-        <h1>🏛️ Enterprise Election Console</h1>
-        <p>{election?.title}</p>
-
-        {/* TABS */}
-        <div style={styles.tabs}>
-          {["overview", "vote", "live", "results", "audit", "settings"].map(
-            (t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t as Tab)}
-                style={{
-                  ...styles.tab,
-                  background: tab === t ? "#08224D" : "#eee",
-                  color: tab === t ? "#fff" : "#000",
-                }}
-              >
-                {t.toUpperCase()}
-              </button>
-            )
-          )}
-        </div>
-
-        {/* OVERVIEW */}
-        {tab === "overview" && (
-          <div style={styles.card}>
-            <h3>📊 Live Metrics</h3>
-            <p>Total Votes: {totalVotes}</p>
-            <p>Ballots: {ballots.length}</p>
-            <p>Status: {election?.status}</p>
-          </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+        {["overview", "vote", "live", "results", "audit", "settings"].map(
+          (t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t as Tab)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "none",
+                cursor: "pointer",
+                background: tab === t ? "#08224D" : "#eee",
+                color: tab === t ? "#fff" : "#000",
+              }}
+            >
+              {t.toUpperCase()}
+            </button>
+          )
         )}
+      </div>
 
-        {/* VOTE */}
-        {tab === "vote" && (
-          <div>
-            {ballots.map((b) => (
-              <div key={b.id} style={styles.card}>
-                <h3>{b.title}</h3>
+      {tab === "overview" && (
+        <div style={{ padding: 15 }}>
+          <h3>📊 Live Metrics</h3>
+          <p>Total Votes: {totalVotes}</p>
+          <p>Ballots: {ballots.length}</p>
+          <p>Status: {election?.status}</p>
+        </div>
+      )}
 
-                {options
-                  .filter((o) => o.ballot_id === b.id)
-                  .map((opt) => {
-                    const checked =
-                      selections[b.id]?.includes(opt.id) || false;
+      {tab === "vote" && (
+        <div>
+          {ballots.map((b) => (
+            <div key={b.id} style={{ padding: 15 }}>
+              <h3>{b.title}</h3>
 
-                    return (
-                      <label key={opt.id} style={styles.row}>
-                        <input
-                          type={allowMulti ? "checkbox" : "radio"}
-                          name={b.id}
-                          checked={checked}
-                          onChange={() => {
-                            setSelections((prev) => {
-                              const current = prev[b.id] || [];
+              {options
+                .filter((o) => o.ballot_id === b.id)
+                .map((opt) => {
+                  const checked =
+                    selections[b.id]?.includes(opt.id) || false;
 
-                              if (allowMulti) {
-                                return {
-                                  ...prev,
-                                  [b.id]: current.includes(opt.id)
-                                    ? current.filter((x) => x !== opt.id)
-                                    : [...current, opt.id],
-                                };
-                              }
+                  return (
+                    <label key={opt.id} style={{ display: "block" }}>
+                      <input
+                        type={allowMulti ? "checkbox" : "radio"}
+                        name={b.id}
+                        checked={checked}
+                        onChange={() => {
+                          setSelections((prev) => {
+                            const current = prev[b.id] || [];
 
+                            if (allowMulti) {
                               return {
                                 ...prev,
-                                [b.id]: [opt.id],
+                                [b.id]: current.includes(opt.id)
+                                  ? current.filter((x) => x !== opt.id)
+                                  : [...current, opt.id],
                               };
-                            });
-                          }}
-                        />
-                        <span style={{ marginLeft: 8 }}>{opt.label}</span>
-                      </label>
-                    );
-                  })}
-              </div>
-            ))}
+                            }
 
-            <button style={styles.primary} onClick={submitVotes}>
-              Submit Vote
-            </button>
-          </div>
-        )}
-
-        {/* LIVE CONTROL ROOM */}
-        {tab === "live" && (
-          <div>
-            <h2>🔴 Election Control Room</h2>
-
-            <div style={styles.grid}>
-              <div style={styles.card}>
-                <h3>Total Votes</h3>
-                <p style={styles.big}>{votes.length}</p>
-              </div>
-
-              <div style={styles.card}>
-                <h3>Votes / Min</h3>
-                <p style={styles.big}>{votesPerMinute}</p>
-              </div>
-
-              <div style={styles.card}>
-                <h3>Status</h3>
-                <p style={styles.big}>
-                  {lastSpike ? "⚡ SPIKE" : "🟢 Stable"}
-                </p>
-              </div>
+                            return {
+                              ...prev,
+                              [b.id]: [opt.id],
+                            };
+                          });
+                        }}
+                      />
+                      <span style={{ marginLeft: 8 }}>{opt.label}</span>
+                    </label>
+                  );
+                })}
             </div>
+          ))}
 
-            <div style={{ marginTop: 20 }}>
-              <h3>📡 Live Stream</h3>
+          <button onClick={submitVotes}>Submit Vote</button>
+        </div>
+      )}
 
-              {liveFeed.length === 0 ? (
-                <p>No activity yet</p>
-              ) : (
-                liveFeed.map((e, i) => (
-                  <div key={i} style={styles.feedRow}>
-                    <span>{e.ballot_id.slice(0, 6)}</span>
-                    <span>{e.option_id.slice(0, 6)}</span>
-                    <small>{new Date(e.time).toLocaleTimeString()}</small>
-                  </div>
-                ))
-              )}
+      {tab === "live" && (
+        <div>
+          <h2>🔴 Control Room</h2>
+          <p>Votes: {votes.length}</p>
+          <p>Votes/min: {votesPerMinute}</p>
+          <p>Status: {lastSpike ? "SPIKE" : "Stable"}</p>
+        </div>
+      )}
+
+      {tab === "results" && (
+        <div>
+          <h3>Results</h3>
+          {Object.entries(results).map(([opt, count]) => (
+            <div key={opt}>
+              {opt}: {count as number}
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      )}
 
-        {/* RESULTS */}
-        {tab === "results" && (
-          <div>
-            <h3>📊 Results</h3>
-            {Object.entries(results).map(([opt, count]) => {
-              const option = options.find((o) => o.id === opt);
+      {tab === "audit" && (
+        <div>
+          <h3>Audit Log</h3>
+          {audit.map((a) => (
+            <div key={a.id}>
+              {a.action} -{" "}
+              {new Date(a.created_at).toLocaleString()}
+            </div>
+          ))}
+        </div>
+      )}
 
-              return (
-                <div key={opt} style={styles.row}>
-                  <span>{option?.label || "Unknown"}</span>
-                  <strong>{count as number}</strong>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* AUDIT */}
-        {tab === "audit" && (
-          <div>
-            <h3>🧾 Audit Log</h3>
-            {audit.map((a) => (
-              <div key={a.id} style={styles.auditRow}>
-                <span>{a.action}</span>
-                <small>{new Date(a.created_at).toLocaleString()}</small>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* SETTINGS */}
-        {tab === "settings" && (
-          <div style={styles.card}>
-            <h3>⚙️ Settings</h3>
-
-            <p>Status: {election?.status}</p>
-            <p>Multi-vote: {allowMulti ? "Yes" : "No"}</p>
-
-            <button
-              style={styles.primary}
-              onClick={() =>
-                router.push(`/dashboard/elections/${id}/live`)
-              }
-            >
-              Open Live View
-            </button>
-          </div>
-        )}
-
-      </div>
-    </SidebarLayout>
+      {tab === "settings" && (
+        <div>
+          <h3>Settings</h3>
+          <p>Status: {election?.status}</p>
+          <p>Multi-vote: {allowMulti ? "Yes" : "No"}</p>
+        </div>
+      )}
+    </div>
   );
 }
-
-// ----------------------------
-// STYLES (APPEND ONLY)
-// ----------------------------
-const styles: Record<string, React.CSSProperties> = {
-  tabs: {
-    display: "flex",
-    gap: 8,
-    marginTop: 20,
-    marginBottom: 20,
-    flexWrap: "wrap",
-  },
-  tab: {
-    padding: "8px 12px",
-    borderRadius: 6,
-    border: "none",
-    cursor: "pointer",
-  },
-  card: {
-    padding: 15,
-    border: "1px solid #eee",
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: 10,
-    borderBottom: "1px solid #eee",
-  },
-  auditRow: {
-    padding: 10,
-    borderBottom: "1px solid #eee",
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  primary: {
-    marginTop: 15,
-    padding: 12,
-    width: "100%",
-    background: "#08224D",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-  },
-
-  // NEW CONTROL ROOM STYLES
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 10,
-    marginTop: 10,
-  },
-
-  big: {
-    fontSize: 28,
-    fontWeight: 700,
-    marginTop: 10,
-  },
-
-  feedRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: 10,
-    borderBottom: "1px solid #eee",
-    fontSize: 12,
-  },
-};

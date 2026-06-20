@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import SidebarLayout from "@/app/components/SidebarLayout";
 import { createBrowserClient } from "@supabase/ssr";
 import { submitVote } from "@/lib/voting/voteService";
 
@@ -108,15 +107,12 @@ export default function BallotOptionsPage() {
   // ----------------------------
   if (loading) {
     return (
-      <SidebarLayout>
-        <p>Loading...</p>
-      </SidebarLayout>
-    );
+              <p>Loading...</p>
+          );
   }
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: 700 }}>
+          <div style={{ maxWidth: 700 }}>
         <h2>Question</h2>
 
         <h3 style={{ marginBottom: 20 }}>
@@ -154,8 +150,7 @@ export default function BallotOptionsPage() {
           {submitting ? "Submitting..." : "Submit Vote"}
         </button>
       </div>
-    </SidebarLayout>
-  );
+      );
 }
 
 // ----------------------------
