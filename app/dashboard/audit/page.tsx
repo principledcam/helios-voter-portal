@@ -10,18 +10,12 @@ export default function AuditPage() {
 
   const { data, loading, error, refetch } = useHoaQuery("audit_logs", {
     select: "*",
-    filters: (query: any) =>
-      activeHoa?.id
-        ? query
-            .eq("association_id", activeHoa.id)
-            .order("created_at", { ascending: false })
-        : query.order("created_at", { ascending: false }),
   });
 
-  // ✅ FIXED: NO INTERVAL, NO LOOP
+  // refresh when HOA changes
   useEffect(() => {
     refetch();
-  }, [activeHoa?.id]);
+  }, [activeHoa?.id, refetch]);
 
   if (loading) {
     return <p style={{ padding: 20 }}>Loading audit logs...</p>;
@@ -35,23 +29,37 @@ export default function AuditPage() {
     );
   }
 
+  // ✅ FIX: do NOT filter out valid system/global logs
+  const filteredLogs = (data || [])
+    .filter((log: any) => {
+      // show:
+      // 1. HOA-specific logs
+      // 2. global/system logs (null association_id)
+      return (
+        !activeHoa?.id ||
+        log.association_id === activeHoa.id ||
+        log.association_id == null
+      );
+    })
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+    );
+
   return (
     <div style={{ padding: 20, maxWidth: 900 }}>
       <h1>🧠 Enterprise Audit Log</h1>
 
       {!activeHoa?.id && (
         <p style={{ color: "orange" }}>
-          No HOA selected
+          Showing system-wide audit logs
         </p>
       )}
 
-      {data.length === 0 && <p>No logs found</p>}
+      {filteredLogs.length === 0 && <p>No logs found</p>}
 
-      {data
-  .filter((log: any) => {
-    return log.before_state?.role || log.after_state?.role;
-  })
-  .map((log: any) => (
+      {filteredLogs.map((log: any) => (
         <div
           key={log.id}
           style={{
