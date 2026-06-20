@@ -47,7 +47,11 @@ export default function AuditPage() {
 
       {data.length === 0 && <p>No logs found</p>}
 
-      {data.map((log: any) => (
+      {data
+  .filter((log: any) => {
+    return log.before_state?.role || log.after_state?.role;
+  })
+  .map((log: any) => (
         <div
           key={log.id}
           style={{

@@ -31,7 +31,7 @@ export default function RoleEditor({ user, activeHoaId }: any) {
       return;
     }
 
-    // 2. Get auth user (for audit consistency)
+    // 2. Get auth user (for audit metadata)
     const { data: userData } = await supabase.auth.getUser();
     const authUser = userData?.user;
 
@@ -41,7 +41,7 @@ export default function RoleEditor({ user, activeHoaId }: any) {
       return;
     }
 
-    // 3. 🔥 REAL ENTERPRISE AUDIT LOG
+    // 3. 🔥 FINAL ENTERPRISE AUDIT LOG FIX
     try {
       await logAudit({
         supabase,
@@ -50,8 +50,18 @@ export default function RoleEditor({ user, activeHoaId }: any) {
         association_id: activeHoaId,
         entity_type: "user",
         entity_id: user.id,
-        before_state: { role: oldRole },
-        after_state: { role: newRole },
+
+        // 🔥 CRITICAL FIX — ENSURES MEANINGFUL AUDIT DATA
+        before_state: {
+          role: oldRole ?? "unknown",
+        },
+        after_state: {
+          role: newRole ?? "unknown",
+        },
+
+        metadata: {
+          updated_by: authUser.id,
+        },
       });
     } catch (err: any) {
       console.error("Audit log failed:", err.message);
