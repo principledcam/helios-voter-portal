@@ -18,7 +18,10 @@ export default function HOAAdminPortal() {
   }, []);
 
   const load = async () => {
-    const { data: assoc } = await supabase.from("associations").select("*");
+    const { data: assoc } = await supabase
+      .from("associations")
+      .select("*");
+
     setAssociations(assoc || []);
 
     const { data: members } = await supabase
@@ -28,16 +31,30 @@ export default function HOAAdminPortal() {
     setMembers(members || []);
   };
 
-  const approveUser = async (user_id: string, association_id: string) => {
-    await supabase
-  .from("association_members")
-  .upsert({
-    user_id,
-    association_id,
-    role,
-  }, {
-    onConflict: "user_id,association_id"
-  });
+  const approveUser = async (
+    user_id: string,
+    association_id: string
+  ) => {
+    // 🔥 FIX: explicitly define role (NO SHORTHAND, NO INLINE CONST)
+    const role = "member";
+
+    const { error } = await supabase
+      .from("association_members")
+      .upsert(
+        {
+          user_id,
+          association_id,
+          role: role,
+        },
+        {
+          onConflict: "user_id,association_id",
+        }
+      );
+
+    if (error) {
+      console.error("Error approving user:", error.message);
+      return;
+    }
 
     await load();
   };
@@ -53,7 +70,9 @@ export default function HOAAdminPortal() {
         </div>
       ))}
 
-      <h3 style={{ marginTop: 20 }}>Pending Users (Mock View)</h3>
+      <h3 style={{ marginTop: 20 }}>
+        Pending Users (Mock View)
+      </h3>
 
       <p>
         (Next step: connect signup table or Supabase Auth logs)
