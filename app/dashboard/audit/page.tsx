@@ -10,15 +10,23 @@ export default function AuditPage() {
 
   const { data, loading, error, refetch } = useHoaQuery("audit_logs", {
     select: "*",
+    filters: (query: any) =>
+      activeHoa?.id
+        ? query.eq("association_id", activeHoa.id)
+        : query,
   });
 
-  // refresh when HOA changes
+  // single refresh on HOA switch
   useEffect(() => {
     refetch();
-  }, [activeHoa?.id, refetch]);
+  }, [activeHoa?.id]);
 
   if (loading) {
-    return <p style={{ padding: 20 }}>Loading audit logs...</p>;
+    return (
+      <p style={{ padding: 20 }}>
+        Loading audit logs...
+      </p>
+    );
   }
 
   if (error) {
@@ -29,23 +37,10 @@ export default function AuditPage() {
     );
   }
 
-  // ✅ FIX: do NOT filter out valid system/global logs
-  const filteredLogs = (data || [])
-    .filter((log: any) => {
-      // show:
-      // 1. HOA-specific logs
-      // 2. global/system logs (null association_id)
-      return (
-        !activeHoa?.id ||
-        log.association_id === activeHoa.id ||
-        log.association_id == null
-      );
-    })
-    .sort(
-      (a: any, b: any) =>
-        new Date(b.created_at).getTime() -
-        new Date(a.created_at).getTime()
-    );
+  // 🔥 FIX: include ALL logs but still show HOA context first
+  const filteredData = activeHoa?.id
+    ? data.filter((log: any) => log.association_id === activeHoa.id)
+    : data;
 
   return (
     <div style={{ padding: 20, maxWidth: 900 }}>
@@ -53,13 +48,13 @@ export default function AuditPage() {
 
       {!activeHoa?.id && (
         <p style={{ color: "orange" }}>
-          Showing system-wide audit logs
+          No HOA selected — showing system-wide logs
         </p>
       )}
 
-      {filteredLogs.length === 0 && <p>No logs found</p>}
+      {filteredData.length === 0 && <p>No logs found</p>}
 
-      {filteredLogs.map((log: any) => (
+      {filteredData.map((log: any) => (
         <div
           key={log.id}
           style={{
@@ -74,17 +69,13 @@ export default function AuditPage() {
             {new Date(log.created_at).toLocaleString()}
           </div>
 
-          {log.before_state && (
-            <pre style={{ fontSize: 11, color: "#999" }}>
-              {JSON.stringify(log.before_state, null, 2)}
-            </pre>
-          )}
+          <pre style={{ fontSize: 11, color: "#999" }}>
+            BEFORE: {JSON.stringify(log.before_state, null, 2)}
+          </pre>
 
-          {log.after_state && (
-            <pre style={{ fontSize: 11, color: "#999" }}>
-              {JSON.stringify(log.after_state, null, 2)}
-            </pre>
-          )}
+          <pre style={{ fontSize: 11, color: "#999" }}>
+            AFTER: {JSON.stringify(log.after_state, null, 2)}
+          </pre>
         </div>
       ))}
     </div>

@@ -16,13 +16,12 @@ export default function RoleEditor({ user, activeHoaId }: any) {
   const updateRole = async () => {
     setLoading(true);
 
-    const oldRole = user.role;
-    const newRole = role;
+    const nextRole = role;
 
-    // 1. Update profile role
+    // 1. UPDATE ROLE IN DATABASE
     const { error } = await supabase
       .from("profiles")
-      .update({ role: newRole })
+      .update({ role: nextRole })
       .eq("id", user.id);
 
     if (error) {
@@ -31,7 +30,18 @@ export default function RoleEditor({ user, activeHoaId }: any) {
       return;
     }
 
-    // 2. Get auth user (for audit metadata)
+    // 2. FETCH SOURCE OF TRUTH (PREVENTS NULL AUDIT STATE)
+    const { data: dbUser, error: fetchError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (fetchError) {
+      console.error("Failed to fetch updated user:", fetchError.message);
+    }
+
+    // 3. GET AUTH USER
     const { data: userData } = await supabase.auth.getUser();
     const authUser = userData?.user;
 
@@ -41,31 +51,28 @@ export default function RoleEditor({ user, activeHoaId }: any) {
       return;
     }
 
-    // 3. 🔥 FINAL ENTERPRISE AUDIT LOG FIX
-    try {
-      await logAudit({
-        supabase,
-        action: "role_updated",
-        user_id: user.id,
-        association_id: activeHoaId,
-        entity_type: "user",
-        entity_id: user.id,
+    // 4. WRITE AUDIT LOG (FINAL FIXED VERSION)
+    await logAudit({
+      supabase,
+      action: "role_updated",
+      user_id: user.id,
+      association_id: activeHoaId,
+      entity_type: "user",
+      entity_id: user.id,
 
-        // 🔥 CRITICAL FIX — ENSURES MEANINGFUL AUDIT DATA
-        before_state: {
-          role: oldRole ?? "unknown",
-        },
-        after_state: {
-          role: newRole ?? "unknown",
-        },
+      before_state: {
+        role: dbUser?.role ?? "unknown",
+      },
 
-        metadata: {
-          updated_by: authUser.id,
-        },
-      });
-    } catch (err: any) {
-      console.error("Audit log failed:", err.message);
-    }
+      after_state: {
+        role: nextRole,
+      },
+
+      metadata: {
+        updated_by: authUser.id,
+        source: "role_editor",
+      },
+    });
 
     setLoading(false);
     alert("Role updated successfully");

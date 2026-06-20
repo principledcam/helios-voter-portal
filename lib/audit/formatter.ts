@@ -1,42 +1,28 @@
 export function formatAudit(log: any) {
-  switch (log.action) {
-    case "role_updated": {
-      const before = log.before_state?.role;
-      const after = log.after_state?.role;
+  const beforeRole =
+    log.before_state?.role ??
+    log.metadata?.old_value ??
+    null;
 
-      // 🧠 SAFE FALLBACK (prevents undefined → undefined issue)
-      if (!before && !after) {
-        return "User changed role (no captured state)";
-      }
+  const afterRole =
+    log.after_state?.role ??
+    log.metadata?.new_value ??
+    null;
 
-      return `User changed role from ${before ?? "unknown"} → ${after ?? "unknown"}`;
-    }
-
-    case "election_created": {
-      return `Election "${log.after_state?.title ?? "Untitled"}" was created`;
-    }
-
-    case "election_updated": {
-      return `Election "${log.after_state?.title ?? "Untitled"}" was updated`;
-    }
-
-    case "election_published": {
-      return `Election "${log.after_state?.title ?? "Untitled"}" was published`;
-    }
-
-    case "vote_cast": {
-      return `Vote cast in election ${log.entity_id ?? "unknown"}`;
-    }
-
-    case "member_added": {
-      return `Member added to association`;
-    }
-
-    case "member_removed": {
-      return `Member removed from association`;
-    }
-
-    default:
-      return log.action || "Unknown audit event";
+  // 🔥 CASE 1: fully broken legacy record
+  if (!beforeRole && !afterRole) {
+    return "User changed role (legacy record)";
   }
+
+  // 🔥 CASE 2: partial legacy (very likely your Casa Verano issue)
+  if (!beforeRole && afterRole) {
+    return `User assigned role → ${afterRole}`;
+  }
+
+  if (beforeRole && !afterRole) {
+    return `User removed role ${beforeRole}`;
+  }
+
+  // 🔥 NORMAL CASE
+  return `User changed role from ${beforeRole} → ${afterRole}`;
 }
