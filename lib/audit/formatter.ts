@@ -1,8 +1,7 @@
 export function formatAudit(log: any) {
   const actor =
     log.actor_name ||
-    log.metadata?.user_name ||
-    "Unknown User";
+    "System";
 
   switch (log.action) {
     case "role_updated": {
@@ -16,7 +15,7 @@ export function formatAudit(log: any) {
       return `${actor} created election "${log.after_state?.title || "Untitled"}"`;
 
     case "vote_cast":
-      return `${actor} cast a vote in election ${log.entity_id}`;
+      return `${actor} cast a vote`;
 
     default:
       return `${actor} performed ${log.action}`;

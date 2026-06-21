@@ -74,17 +74,19 @@ export default function AuditPage() {
           <strong>{formatAudit(log)}</strong>
 
           <div style={{ fontSize: 12, color: "#666" }}>
-            {new Date(log.created_at).toLocaleString()}
+            {new Date(log.created_at).toLocaleString("en-US", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+})}{" "}
+EDT
           </div>
 
-          <pre style={{ fontSize: 11, color: "#999" }}>
-            BEFORE: {JSON.stringify(log.before_state, null, 2)}
-          </pre>
-
-          <pre style={{ fontSize: 11, color: "#999" }}>
-            AFTER: {JSON.stringify(log.after_state, null, 2)}
-          </pre>
-        </div>
+                  </div>
       ))}
     </div>
   );
