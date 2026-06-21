@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import HoaSwitcher from "@/app/components/HoaSwitcher";
+import { useHoa } from "@/app/context/HoaContext";
 
 const BRAND = {
   primary: "#08224D",
@@ -24,10 +25,30 @@ export default function SidebarLayout({
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
 
+  // 🟢 SANDBOX CONTEXT
+  const { isSandbox, setSandbox } = useHoa();
+
+  // 🟢 ROLE + HOA ACCESS CONTROL (ADDED AS REQUESTED)
+  const [role, setRole] = useState<string | null>(null);
+  const [userAssociationId, setUserAssociationId] = useState<string | null>(null);
+
   useEffect(() => {
     const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setEmail(data.user?.email ?? null);
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+
+      setEmail(user?.email ?? null);
+
+      if (!user?.id) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, association_id")
+        .eq("id", user.id)
+        .single();
+
+      setRole(profile?.role ?? null);
+      setUserAssociationId(profile?.association_id ?? null);
     };
 
     loadUser();
@@ -69,8 +90,41 @@ export default function SidebarLayout({
           />
         </div>
 
-        {/* ✅ HOA SWITCHER (FIXED - NOW RENDERED) */}
+        {/* HOA SWITCHER */}
         <HoaSwitcher />
+
+        {/* 🟢 SANDBOX TOGGLE */}
+        <div style={{ marginTop: 10, marginBottom: 10 }}>
+          <button
+            onClick={() => setSandbox(!isSandbox)}
+            style={{
+              width: "100%",
+              padding: "6px 10px",
+              borderRadius: 6,
+              background: isSandbox ? "#ffcc00" : "#111",
+              color: isSandbox ? "#000" : "#fff",
+              border: "1px solid rgba(255,255,255,0.15)",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {isSandbox ? "🟡 Sandbox Mode ON" : "🟢 Production Mode"}
+          </button>
+
+          {isSandbox && (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                color: "#ffcc00",
+                textAlign: "center",
+              }}
+            >
+              Sandbox Environment Active
+            </div>
+          )}
+        </div>
 
         {/* NAV */}
         <nav style={styles.nav}>

@@ -2,6 +2,9 @@ import { useHoa } from "@/app/context/HoaContext";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
+// 🟢 SINGLE SOURCE OF TRUTH (sandbox HOA id)
+const SANDBOX_HOA_ID = process.env.NEXT_PUBLIC_SANDBOX_HOA_ID!;
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -13,29 +16,27 @@ type QueryOptions = {
 };
 
 export function useHoaQuery(table: string, options?: QueryOptions) {
-  const { activeHoa } = useHoa();
+  const { activeHoa, isSandbox } = useHoa();
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
-  // 🧠 HARD GUARD: prevents duplicate fetch loops
+  // 🧠 prevents duplicate fetch loops
   const didFetch = useRef(false);
 
-  // =========================
-  // FETCH DATA (STABLE CORE)
-  // =========================
   const fetchData = useCallback(async () => {
     setError(null);
 
-    // 🚨 FINAL FIX — BLOCK QUERY UNTIL HOA IS READY
-    if (!activeHoa?.id) {
+    // 🟢 FINAL HOA RESOLUTION (SANDBOX AWARE)
+    const hoaId = isSandbox ? SANDBOX_HOA_ID : activeHoa?.id;
+
+    if (!hoaId) {
       setData([]);
       setLoading(false);
       return;
     }
 
-    // 🔥 ONLY SHOW LOADING ON FIRST EVER FETCH
     if (!didFetch.current) {
       setLoading(true);
     }
@@ -45,10 +46,18 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
         .from(table)
         .select(options?.select || "*");
 
-      // HOA SCOPING
-      query = query.eq("association_id", activeHoa.id);
+      // 🟢 STEP 5 — ENFORCE QUERY SAFETY (REQUIRED ORDER)
 
-      // OPTIONAL FILTERS
+      // 1. HOA SCOPING
+      if (activeHoa?.id || isSandbox) {
+        query = query.eq("association_id", hoaId);
+      }
+
+      // 2. ENVIRONMENT SCOPING (CRITICAL)
+      const environment = isSandbox ? "sandbox" : "production";
+      query = query.eq("environment", environment);
+
+      // 3. OPTIONAL FILTERS
       if (options?.filters) {
         query = options.filters(query);
       }
@@ -61,22 +70,15 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
     } catch (err) {
       setError(err);
     } finally {
-      // 🔥 MARK FIRST LOAD COMPLETE
       didFetch.current = true;
       setLoading(false);
     }
-  }, [table, activeHoa?.id]);
+  }, [table, activeHoa?.id, isSandbox]);
 
-  // =========================
-  // INITIAL LOAD
-  // =========================
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // =========================
-  // MANUAL REFRESH
-  // =========================
   const refetch = useCallback(() => {
     return fetchData();
   }, [fetchData]);

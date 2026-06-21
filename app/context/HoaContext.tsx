@@ -10,30 +10,52 @@ type Hoa = {
 type HoaContextType = {
   activeHoa: Hoa | null;
   setActiveHoa: (hoa: Hoa | null) => void;
+
+  // 🟢 SANDBOX MODE
+  isSandbox: boolean;
+  setSandbox: (value: boolean) => void;
 };
 
 const HoaContext = createContext<HoaContextType | null>(null);
 
 export function HoaProvider({ children }: { children: React.ReactNode }) {
   const [activeHoa, setActiveHoaState] = useState<Hoa | null>(null);
+  const [isSandbox, setSandboxState] = useState(false);
 
-  // Load saved HOA from browser
+  // =========================
+  // LOAD FROM LOCAL STORAGE
+  // =========================
   useEffect(() => {
-    const saved = localStorage.getItem("activeHoa");
+    const savedHoa = localStorage.getItem("activeHoa");
+    const savedSandbox = localStorage.getItem("sandboxMode");
 
-    if (saved) {
-      const parsed = JSON.parse(saved);
+    // HOA LOAD
+    if (savedHoa) {
+      try {
+        const parsed = JSON.parse(savedHoa);
 
-      // 🟢 HARD GUARD — prevent invalid HOA from loading
-      if (parsed?.id) {
-        setActiveHoaState(parsed);
+        if (parsed?.id) {
+          setActiveHoaState(parsed);
+        }
+      } catch (err) {
+        console.error("Invalid activeHoa in storage");
+      }
+    }
+
+    // SANDBOX LOAD
+    if (savedSandbox !== null) {
+      try {
+        setSandboxState(JSON.parse(savedSandbox));
+      } catch (err) {
+        console.error("Invalid sandboxMode in storage");
       }
     }
   }, []);
 
-  // 🟢 STABLE SETTER (prevents undefined state leaks)
+  // =========================
+  // HOA SETTER
+  // =========================
   const setActiveHoa = (hoa: Hoa | null) => {
-    // 🚨 CRITICAL RULE: NEVER allow undefined into state
     if (!hoa?.id) {
       setActiveHoaState(null);
       localStorage.removeItem("activeHoa");
@@ -41,12 +63,26 @@ export function HoaProvider({ children }: { children: React.ReactNode }) {
     }
 
     setActiveHoaState(hoa);
-
     localStorage.setItem("activeHoa", JSON.stringify(hoa));
   };
 
+  // =========================
+  // SANDBOX TOGGLE
+  // =========================
+  const setSandbox = (value: boolean) => {
+    setSandboxState(value);
+    localStorage.setItem("sandboxMode", JSON.stringify(value));
+  };
+
   return (
-    <HoaContext.Provider value={{ activeHoa, setActiveHoa }}>
+    <HoaContext.Provider
+      value={{
+        activeHoa,
+        setActiveHoa,
+        isSandbox,
+        setSandbox,
+      }}
+    >
       {children}
     </HoaContext.Provider>
   );

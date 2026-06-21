@@ -14,7 +14,7 @@ export default function HoaSwitcher() {
   const [open, setOpen] = useState(false);
   const [associations, setAssociations] = useState<any[]>([]);
 
-  // ✅ GLOBAL HOA STATE (NEW)
+  // 🟢 GLOBAL HOA STATE
   const { activeHoa, setActiveHoa } = useHoa();
 
   useEffect(() => {
@@ -27,51 +27,58 @@ export default function HoaSwitcher() {
         return;
       }
 
+      // 🟢 GET USER ROLE + ACCESS
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, is_system_admin")
+        .select("role, association_id")
         .eq("id", user.id)
         .single();
 
-      const isHoaAdmin = profile?.role === "hoa_admin";
-      const isMember = profile?.role === "member";
+      const role = profile?.role;
+      const userAssociationId = profile?.association_id;
 
-      let query = supabase
-        .from("association_members")
-        .select(`
-          association_id,
-          associations:association_id (
-            id,
-            name
-          )
-        `)
-        .eq("user_id", user.id);
+      // 🟢 FETCH ALL HOAS (NO FILTER HERE)
+      const { data: associationsData, error } = await supabase
+        .from("associations")
+        .select("*");
 
-      // role-based filtering
-      if (isHoaAdmin || isMember) {
-        query = query.eq("role", profile?.role);
-      }
-
-      const { data, error } = await query;
-
-      console.log("HOA SWITCHER DATA:", data);
+      console.log("HOA SWITCHER DATA:", associationsData);
       console.log("HOA SWITCHER ERROR:", error);
 
-      const formatted =
-        data?.map((m: any) => m.associations).filter(Boolean) || [];
+      let visibleHOAs = associationsData || [];
 
-      setAssociations(formatted);
+      // 🛠 SYSTEM ADMIN — sees everything
+      if (role === "system_admin") {
+        visibleHOAs = associationsData || [];
+      }
 
-      // ✅ ONLY SET DEFAULT IF NONE SELECTED GLOBALLY
-      if (!activeHoa && formatted.length > 0) {
-        setActiveHoa(formatted[0]);
+      // 👤 HOA ADMIN — ONLY assigned HOA
+      if (role === "hoa_admin") {
+        visibleHOAs =
+          associationsData?.filter(
+            (hoa: any) => hoa.id === userAssociationId
+          ) || [];
+      }
+
+      // 👤 MEMBER — same as HOA admin (safe default)
+      if (role === "member") {
+        visibleHOAs =
+          associationsData?.filter(
+            (hoa: any) => hoa.id === userAssociationId
+          ) || [];
+      }
+
+      setAssociations(visibleHOAs);
+
+      // 🟢 AUTO SELECT FIRST HOA
+      if (!activeHoa && visibleHOAs.length > 0) {
+        setActiveHoa(visibleHOAs[0]);
       }
 
       setLoading(false);
     };
 
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -93,11 +100,13 @@ export default function HoaSwitcher() {
               key={hoa.id}
               style={styles.item}
               onClick={() => {
-                setActiveHoa(hoa); // ✅ GLOBAL UPDATE
+                setActiveHoa(hoa);
                 setOpen(false);
               }}
             >
               {hoa.name}
+              {hoa.environment === "sandbox" ? " (Sandbox)" : ""}
+              {hoa.environment === "production" ? " (Production)" : ""}
             </div>
           ))}
         </div>
