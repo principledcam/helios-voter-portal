@@ -23,6 +23,11 @@ export async function logAudit({
   after_state?: any;
   metadata?: any;
 }) {
+  const actor_name =
+    performed_by_name ||
+    metadata?.updated_by_name ||
+    null;
+
   const { error } = await supabase
     .from("audit_logs")
     .insert({
@@ -31,11 +36,14 @@ export async function logAudit({
       association_id,
       entity_type,
       entity_id,
-      performed_by,
-      performed_by_name,
+
+      // ✅ correct column name
+      actor_name,
+
       before_state,
       after_state,
       metadata,
+
       created_at: new Date().toISOString(),
     });
 
