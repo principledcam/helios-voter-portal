@@ -27,52 +27,54 @@ export default function HoaSwitcher() {
         return;
       }
 
-      // 🟢 GET USER ROLE + ACCESS
+      // 🟢 GET USER PROFILE (ROLE CHECK ONLY)
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, association_id")
+        .select("role, is_system_admin")
         .eq("id", user.id)
         .single();
 
-      const role = profile?.role;
-      const userAssociationId = profile?.association_id;
+      // =========================
+      // SYSTEM ADMIN — SEE ALL HOAS
+      // =========================
+      if (profile?.is_system_admin) {
+        const { data } = await supabase
+          .from("associations")
+          .select("*")
+          .order("name");
 
-      // 🟢 FETCH ALL HOAS (NO FILTER HERE)
-      const { data: associationsData, error } = await supabase
-        .from("associations")
-        .select("*");
+        setAssociations(data || []);
 
-      console.log("HOA SWITCHER DATA:", associationsData);
-      console.log("HOA SWITCHER ERROR:", error);
+        if (!activeHoa && data && data.length > 0) {
+          setActiveHoa(data[0]);
+        }
 
-      let visibleHOAs = associationsData || [];
-
-      // 🛠 SYSTEM ADMIN — sees everything
-      if (role === "system_admin") {
-        visibleHOAs = associationsData || [];
+        setLoading(false);
+        return;
       }
 
-      // 👤 HOA ADMIN — ONLY assigned HOA
-      if (role === "hoa_admin") {
-        visibleHOAs =
-          associationsData?.filter(
-            (hoa: any) => hoa.id === userAssociationId
-          ) || [];
-      }
+      // =========================
+      // HOA ADMIN / MEMBER — ONLY ASSIGNED HOA(S)
+      // =========================
+      const { data } = await supabase
+        .from("association_members")
+        .select(`
+          association_id,
+          associations (
+            id,
+            name,
+            environment
+          )
+        `)
+        .eq("user_id", user.id);
 
-      // 👤 MEMBER — same as HOA admin (safe default)
-      if (role === "member") {
-        visibleHOAs =
-          associationsData?.filter(
-            (hoa: any) => hoa.id === userAssociationId
-          ) || [];
-      }
+      const visible =
+        data?.map((x: any) => x.associations).filter(Boolean) || [];
 
-      setAssociations(visibleHOAs);
+      setAssociations(visible);
 
-      // 🟢 AUTO SELECT FIRST HOA
-      if (!activeHoa && visibleHOAs.length > 0) {
-        setActiveHoa(visibleHOAs[0]);
+      if (!activeHoa && visible.length > 0) {
+        setActiveHoa(visible[0]);
       }
 
       setLoading(false);
@@ -87,33 +89,76 @@ export default function HoaSwitcher() {
 
   if (associations.length === 0) return null;
 
+  // 🟢 SPLIT FOR UI GROUPING
+  const production = associations.filter(
+    (hoa: any) => hoa.environment === "production"
+  );
+
+  const sandbox = associations.filter(
+    (hoa: any) => hoa.environment === "sandbox"
+  );
+
   return (
     <div style={styles.wrapper}>
+      {/* HEADER */}
       <div style={styles.header} onClick={() => setOpen(!open)}>
         🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
       </div>
 
+      {/* DROPDOWN */}
       {open && (
         <div style={styles.dropdown}>
-          {associations.map((hoa) => (
-            <div
-              key={hoa.id}
-              style={styles.item}
-              onClick={() => {
-                setActiveHoa(hoa);
-                setOpen(false);
-              }}
-            >
-              {hoa.name}
-              {hoa.environment === "sandbox" ? " (Sandbox)" : ""}
-              {hoa.environment === "production" ? " (Production)" : ""}
-            </div>
-          ))}
+          {/* 🟢 PRODUCTION */}
+          {production.length > 0 && (
+            <>
+              <div style={styles.sectionHeader}>Production HOAs</div>
+
+              {production.map((hoa) => (
+                <div
+                  key={hoa.id}
+                  style={styles.item}
+                  onClick={() => {
+                    setActiveHoa(hoa);
+                    setOpen(false);
+                  }}
+                >
+                  {hoa.name}
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 🟡 SANDBOX */}
+          {sandbox.length > 0 && (
+            <>
+              <div style={styles.sectionHeader}>🧪 Sandbox HOAs</div>
+
+              {sandbox.map((hoa) => (
+                <div
+                  key={hoa.id}
+                  style={{
+                    ...styles.item,
+                    color: "#ffcc00",
+                  }}
+                  onClick={() => {
+                    setActiveHoa(hoa);
+                    setOpen(false);
+                  }}
+                >
+                  {hoa.name}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
   );
 }
+
+/* =========================
+   STYLES
+========================= */
 
 const styles: Record<string, React.CSSProperties> = {
   wrapper: {
@@ -143,6 +188,16 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 6,
     zIndex: 999,
     overflow: "hidden",
+  },
+
+  sectionHeader: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#9CA3AF",
+    padding: "8px 10px",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    background: "rgba(0,0,0,0.05)",
   },
 
   item: {
