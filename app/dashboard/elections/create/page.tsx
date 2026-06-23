@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { useHoa } from "@/app/context/HoaContext";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,6 +12,8 @@ const supabase = createBrowserClient(
 
 export default function CreateElectionPage() {
   const router = useRouter();
+
+  const { activeHoa } = useHoa();
 
   const [user, setUser] = useState<any>(null);
   const [title, setTitle] = useState("");
@@ -31,6 +34,11 @@ export default function CreateElectionPage() {
       return;
     }
 
+    if (!activeHoa?.id) {
+      alert("No HOA selected.");
+      return;
+    }
+
     setLoading(true);
 
     const currentUser = user || (await loadUser());
@@ -41,11 +49,13 @@ export default function CreateElectionPage() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data: election, error: e1 } = await supabase
       .from("elections")
       .insert({
         title,
         description,
+        association_id: activeHoa.id,
+        environment: activeHoa.environment,
         user_id: currentUser.id,
         status: "draft",
         settings: {
@@ -58,12 +68,12 @@ export default function CreateElectionPage() {
 
     setLoading(false);
 
-    if (error) {
-      alert(error.message);
+    if (e1 || !election) {
+      alert(e1?.message || "Error creating election");
       return;
     }
 
-    router.push(`/dashboard/elections/${data.id}/edit`);
+    router.push(`/dashboard/elections/${election.id}/edit`);
   };
 
   return (
