@@ -26,7 +26,7 @@ export default function SidebarLayout({
   const [email, setEmail] = useState<string | null>(null);
 
   // 🟢 SANDBOX CONTEXT
-  const { isSandbox, setSandbox } = useHoa();
+  const { isSandbox } = useHoa();
 
   // 🟢 ROLE + HOA ACCESS CONTROL (ADDED AS REQUESTED)
   const [role, setRole] = useState<string | null>(null);
