@@ -30,7 +30,6 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
 
     // 🟢 FINAL HOA RESOLUTION (SANDBOX AWARE)
     const hoaId = isSandbox ? SANDBOX_HOA_ID : activeHoa?.id;
-    const environment = isSandbox ? "sandbox" : "production";
 
     if (!hoaId) {
       setData([]);
@@ -43,23 +42,13 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
     }
 
     try {
+      // 🟢 BASE QUERY (ONLY HOA SCOPING)
       let query = supabase
         .from(table)
-        .select(options?.select || "*");
-        query = query.eq("environment", environment);
+        .select(options?.select || "*")
+        .eq("association_id", hoaId);
 
-      // 🟢 STEP 5 — ENFORCE QUERY SAFETY (REQUIRED ORDER)
-
-      // 1. HOA SCOPING
-      if (activeHoa?.id || isSandbox) {
-        query = query.eq("association_id", hoaId);
-      }
-
-      // 2. ENVIRONMENT SCOPING (CRITICAL)
-      const environment = isSandbox ? "sandbox" : "production";
-      query = query.eq("environment", environment);
-
-      // 3. OPTIONAL FILTERS
+      // 🟢 OPTIONAL FILTERS ONLY (NO ENVIRONMENT FILTERING)
       if (options?.filters) {
         query = options.filters(query);
       }

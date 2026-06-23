@@ -48,14 +48,19 @@ export default function HoaSwitcher() {
         const savedHoa = localStorage.getItem("activeHoa");
 
 if (savedHoa) {
-  setActiveHoa(JSON.parse(savedHoa));
-} else if (data?.length) {
-  const casaVerano =
-    data.find((hoa: any) =>
-      hoa.name === "Casa Verano Condominium Association"
-    ) || data[0];
+  const parsed = JSON.parse(savedHoa);
 
-  setActiveHoa(casaVerano);
+// ONLY use if it exists in visible list
+  const exists = visible.find((h: any) => h.id === parsed.id);
+
+  if (exists) {
+    setActiveHoa(exists);
+  } else if (visible.length > 0) {
+    setActiveHoa(visible[0]);
+  }
+
+} else if (visible.length > 0) {
+  setActiveHoa(visible[0]);
 }
 
         setLoading(false);
@@ -85,14 +90,19 @@ if (savedHoa) {
       const savedHoa = localStorage.getItem("activeHoa");
 
 if (savedHoa) {
-  setActiveHoa(JSON.parse(savedHoa));
-} else if (visible.length > 0) {
-  const casaVerano =
-    visible.find((hoa: any) =>
-      hoa.name === "Casa Verano Condominium Association"
-    ) || visible[0];
+  const parsed = JSON.parse(savedHoa);
 
-  setActiveHoa(casaVerano);
+// ONLY use if it exists in visible list
+  const exists = visible.find((h: any) => h.id === parsed.id);
+
+  if (exists) {
+    setActiveHoa(exists);
+  } else if (visible.length > 0) {
+    setActiveHoa(visible[0]);
+  }
+
+} else if (visible.length > 0) {
+  setActiveHoa(visible[0]);
 }
 
       setLoading(false);
