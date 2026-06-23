@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { useHoa } from "@/app/context/HoaContext";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,6 +12,7 @@ const supabase = createBrowserClient(
 
 export default function CreateElectionPage() {
   const router = useRouter();
+  const { activeHoa, isSandbox } = useHoa();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -30,12 +32,29 @@ export default function CreateElectionPage() {
   const createElection = async () => {
     setLoading(true);
 
-    // 1. Create election
+    // 🔥 GET USER (needed for RLS-safe insert)
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth.user;
+
+    if (!user || !activeHoa?.id) {
+      alert("Missing user or HOA context");
+      setLoading(false);
+      return;
+    }
+
+    // 1. Create election (RLS SAFE)
     const { data: election, error: e1 } = await supabase
       .from("elections")
       .insert({
         title,
         description,
+
+        // 🔥 REQUIRED FOR RLS
+        association_id: activeHoa.id,
+        environment: isSandbox ? "sandbox" : "production",
+
+        // 🔥 AUDIT TRAIL (recommended)
+        created_by: user.id,
       })
       .select()
       .single();
@@ -54,7 +73,9 @@ export default function CreateElectionPage() {
         choice: o,
       }));
 
-    const { error: e2 } = await supabase.from("ballots").insert(ballots);
+    const { error: e2 } = await supabase
+      .from("ballots")
+      .insert(ballots);
 
     if (e2) {
       alert(e2.message);
@@ -62,51 +83,59 @@ export default function CreateElectionPage() {
       return;
     }
 
-    alert("Election created!");
+    alert("Election created successfully!");
 
     router.push("/dashboard/admin");
   };
 
   return (
-          <div style={styles.card}>
-        <h1>Create Election</h1>
+    <div style={styles.card}>
+      <h1>Create Election</h1>
 
+      <input
+        placeholder="Election title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={styles.input}
+      />
+
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        style={styles.textarea}
+      />
+
+      <h3>Ballot Options</h3>
+
+      {options.map((opt, i) => (
         <input
-          placeholder="Election title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          key={i}
+          placeholder={`Option ${i + 1}`}
+          value={opt}
+          onChange={(e) => updateOption(e.target.value, i)}
           style={styles.input}
         />
+      ))}
 
-        <textarea
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          style={styles.textarea}
-        />
+      <button onClick={addOption} style={styles.secondary}>
+        + Add Option
+      </button>
 
-        <h3>Ballot Options</h3>
-
-        {options.map((opt, i) => (
-          <input
-            key={i}
-            placeholder={`Option ${i + 1}`}
-            value={opt}
-            onChange={(e) => updateOption(e.target.value, i)}
-            style={styles.input}
-          />
-        ))}
-
-        <button onClick={addOption} style={styles.secondary}>
-          + Add Option
-        </button>
-
-        <button onClick={createElection} disabled={loading} style={styles.primary}>
-          {loading ? "Creating..." : "Create Election"}
-        </button>
-      </div>
-      );
+      <button
+        onClick={createElection}
+        disabled={loading}
+        style={styles.primary}
+      >
+        {loading ? "Creating..." : "Create Election"}
+      </button>
+    </div>
+  );
 }
+
+/* =========================
+   STYLES
+========================= */
 
 const styles: Record<string, React.CSSProperties> = {
   card: {
