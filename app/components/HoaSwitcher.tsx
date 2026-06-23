@@ -35,7 +35,7 @@ export default function HoaSwitcher() {
         .single();
 
       // =========================
-      // SYSTEM ADMIN — SEE ALL HOAS
+      // SYSTEM ADMIN
       // =========================
       if (profile?.is_system_admin) {
         const { data } = await supabase
@@ -45,8 +45,16 @@ export default function HoaSwitcher() {
 
         setAssociations(data || []);
 
-        if (!activeHoa && data && data.length > 0) {
-          setActiveHoa(data[0]);
+        const savedHoa = localStorage.getItem("activeHoa");
+
+        if (!savedHoa && data && data.length > 0) {
+          const casaVerano =
+            data.find(
+              (hoa: any) =>
+                hoa.name === "Casa Verano Condominium Association"
+            ) || data[0];
+
+          setActiveHoa(casaVerano);
         }
 
         setLoading(false);
@@ -54,7 +62,7 @@ export default function HoaSwitcher() {
       }
 
       // =========================
-      // HOA ADMIN / MEMBER — ONLY ASSIGNED HOA(S)
+      // HOA ADMIN / MEMBER
       // =========================
       const { data } = await supabase
         .from("association_members")
@@ -73,15 +81,23 @@ export default function HoaSwitcher() {
 
       setAssociations(visible);
 
-      if (!activeHoa && visible.length > 0) {
-        setActiveHoa(visible[0]);
+      const savedHoa = localStorage.getItem("activeHoa");
+
+      if (!savedHoa && visible.length > 0) {
+        const casaVerano =
+          visible.find(
+            (hoa: any) =>
+              hoa.name === "Casa Verano Condominium Association"
+          ) || visible[0];
+
+        setActiveHoa(casaVerano);
       }
 
       setLoading(false);
     };
 
     load();
-  }, []);
+  }, []); // ✅ FIXED: prevents reload loop
 
   if (loading) {
     return <div style={styles.loading}>Loading HOA...</div>;
@@ -136,10 +152,7 @@ export default function HoaSwitcher() {
               {sandbox.map((hoa) => (
                 <div
                   key={hoa.id}
-                  style={{
-                    ...styles.item,
-                    color: "#ffcc00",
-                  }}
+                  style={styles.item}   // ✅ FIXED: removed yellow override
                   onClick={() => {
                     setActiveHoa(hoa);
                     setOpen(false);

@@ -30,6 +30,7 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
 
     // 🟢 FINAL HOA RESOLUTION (SANDBOX AWARE)
     const hoaId = isSandbox ? SANDBOX_HOA_ID : activeHoa?.id;
+    const environment = isSandbox ? "sandbox" : "production";
 
     if (!hoaId) {
       setData([]);
@@ -45,6 +46,7 @@ export function useHoaQuery(table: string, options?: QueryOptions) {
       let query = supabase
         .from(table)
         .select(options?.select || "*");
+        query = query.eq("environment", environment);
 
       // 🟢 STEP 5 — ENFORCE QUERY SAFETY (REQUIRED ORDER)
 

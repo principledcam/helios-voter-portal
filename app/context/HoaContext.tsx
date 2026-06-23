@@ -2,34 +2,40 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
+/**
+ * 🧱 HOA MODEL (CLEAN)
+ * - NO sandbox state stored
+ * - NO environment-based auth logic
+ * - environment is ONLY a property of HOA entity
+ */
 type Hoa = {
   id: string;
   name: string;
+  environment?: "production" | "sandbox";
 };
 
 type HoaContextType = {
   activeHoa: Hoa | null;
   setActiveHoa: (hoa: Hoa | null) => void;
 
-  // 🟢 SANDBOX MODE
+  /**
+   * 🧠 DERIVED STATE ONLY
+   * sandbox is NOT stored or controlled manually
+   */
   isSandbox: boolean;
-  setSandbox: (value: boolean) => void;
 };
 
 const HoaContext = createContext<HoaContextType | null>(null);
 
 export function HoaProvider({ children }: { children: React.ReactNode }) {
   const [activeHoa, setActiveHoaState] = useState<Hoa | null>(null);
-  const [isSandbox, setSandboxState] = useState(false);
 
   // =========================
-  // LOAD FROM LOCAL STORAGE
+  // LOAD ACTIVE HOA (LOCAL STORAGE ONLY)
   // =========================
   useEffect(() => {
     const savedHoa = localStorage.getItem("activeHoa");
-    const savedSandbox = localStorage.getItem("sandboxMode");
 
-    // HOA LOAD
     if (savedHoa) {
       try {
         const parsed = JSON.parse(savedHoa);
@@ -41,19 +47,10 @@ export function HoaProvider({ children }: { children: React.ReactNode }) {
         console.error("Invalid activeHoa in storage");
       }
     }
-
-    // SANDBOX LOAD
-    if (savedSandbox !== null) {
-      try {
-        setSandboxState(JSON.parse(savedSandbox));
-      } catch (err) {
-        console.error("Invalid sandboxMode in storage");
-      }
-    }
   }, []);
 
   // =========================
-  // HOA SETTER
+  // SET ACTIVE HOA
   // =========================
   const setActiveHoa = (hoa: Hoa | null) => {
     if (!hoa?.id) {
@@ -67,12 +64,9 @@ export function HoaProvider({ children }: { children: React.ReactNode }) {
   };
 
   // =========================
-  // SANDBOX TOGGLE
+  // DERIVED STATE (IMPORTANT FIX)
   // =========================
-  const setSandbox = (value: boolean) => {
-    setSandboxState(value);
-    localStorage.setItem("sandboxMode", JSON.stringify(value));
-  };
+  const isSandbox = activeHoa?.environment === "sandbox";
 
   return (
     <HoaContext.Provider
@@ -80,7 +74,6 @@ export function HoaProvider({ children }: { children: React.ReactNode }) {
         activeHoa,
         setActiveHoa,
         isSandbox,
-        setSandbox,
       }}
     >
       {children}
@@ -90,8 +83,10 @@ export function HoaProvider({ children }: { children: React.ReactNode }) {
 
 export function useHoa() {
   const context = useContext(HoaContext);
+
   if (!context) {
     throw new Error("useHoa must be used within HoaProvider");
   }
+
   return context;
 }
