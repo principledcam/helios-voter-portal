@@ -25,10 +25,10 @@ export default function SidebarLayout({
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
 
-  // 🟢 SANDBOX CONTEXT
+  // 🟢 SANDBOX CONTEXT (READ ONLY)
   const { isSandbox } = useHoa();
 
-  // 🟢 ROLE + HOA ACCESS CONTROL (ADDED AS REQUESTED)
+  // 🟢 ROLE + HOA ACCESS CONTROL
   const [role, setRole] = useState<string | null>(null);
   const [userAssociationId, setUserAssociationId] = useState<string | null>(null);
 
@@ -93,37 +93,11 @@ export default function SidebarLayout({
         {/* HOA SWITCHER */}
         <HoaSwitcher />
 
-        {/* 🟢 SANDBOX TOGGLE */}
+        {/* 🟢 MODE INDICATOR (READ ONLY) */}
         <div style={{ marginTop: 10, marginBottom: 10 }}>
-          <button
-            onClick={() => setSandbox(!isSandbox)}
-            style={{
-              width: "100%",
-              padding: "6px 10px",
-              borderRadius: 6,
-              background: isSandbox ? "#ffcc00" : "#111",
-              color: isSandbox ? "#000" : "#fff",
-              border: "1px solid rgba(255,255,255,0.15)",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            {isSandbox ? "🟡 Sandbox Mode ON" : "🟢 Production Mode"}
-          </button>
-
-          {isSandbox && (
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 11,
-                color: "#ffcc00",
-                textAlign: "center",
-              }}
-            >
-              Sandbox Environment Active
-            </div>
-          )}
+          <div style={{ fontSize: 12, color: "#999", textAlign: "center" }}>
+            Mode: {isSandbox ? "Sandbox" : "Production"}
+          </div>
         </div>
 
         {/* NAV */}
