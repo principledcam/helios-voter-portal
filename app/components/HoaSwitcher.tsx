@@ -34,7 +34,6 @@ export default function HoaSwitcher() {
         .eq("id", user.id)
         .single();
 
-      // 🟢 SINGLE SOURCE OF ASSOCIATIONS
       let visible: any[] = [];
 
       // =========================
@@ -72,7 +71,7 @@ export default function HoaSwitcher() {
       setAssociations(visible);
 
       // =========================
-      // DEFAULT HOA LOGIC (CASA VERANO PRIORITY)
+      // DEFAULT HOA LOGIC
       // =========================
       const savedHoa = localStorage.getItem("activeHoa");
 
@@ -126,10 +125,7 @@ export default function HoaSwitcher() {
   return (
     <div style={styles.wrapper}>
       {/* HEADER */}
-      <div
-        style={styles.header}
-        onClick={() => setOpen(!open)}
-      >
+      <div style={styles.header} onClick={() => setOpen(!open)}>
         🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
       </div>
 
