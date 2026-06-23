@@ -47,15 +47,16 @@ export default function HoaSwitcher() {
 
         const savedHoa = localStorage.getItem("activeHoa");
 
-        if (!savedHoa && data && data.length > 0) {
-          const casaVerano =
-            data.find(
-              (hoa: any) =>
-                hoa.name === "Casa Verano Condominium Association"
-            ) || data[0];
+if (savedHoa) {
+  setActiveHoa(JSON.parse(savedHoa));
+} else if (data?.length) {
+  const casaVerano =
+    data.find((hoa: any) =>
+      hoa.name === "Casa Verano Condominium Association"
+    ) || data[0];
 
-          setActiveHoa(casaVerano);
-        }
+  setActiveHoa(casaVerano);
+}
 
         setLoading(false);
         return;
@@ -83,15 +84,16 @@ export default function HoaSwitcher() {
 
       const savedHoa = localStorage.getItem("activeHoa");
 
-      if (!savedHoa && visible.length > 0) {
-        const casaVerano =
-          visible.find(
-            (hoa: any) =>
-              hoa.name === "Casa Verano Condominium Association"
-          ) || visible[0];
+if (savedHoa) {
+  setActiveHoa(JSON.parse(savedHoa));
+} else if (visible.length > 0) {
+  const casaVerano =
+    visible.find((hoa: any) =>
+      hoa.name === "Casa Verano Condominium Association"
+    ) || visible[0];
 
-        setActiveHoa(casaVerano);
-      }
+  setActiveHoa(casaVerano);
+}
 
       setLoading(false);
     };
