@@ -34,6 +34,9 @@ export default function HoaSwitcher() {
         .eq("id", user.id)
         .single();
 
+      // 🟢 SINGLE SOURCE OF ASSOCIATIONS
+      let visible: any[] = [];
+
       // =========================
       // SYSTEM ADMIN
       // =========================
@@ -43,73 +46,67 @@ export default function HoaSwitcher() {
           .select("*")
           .order("name");
 
-        setAssociations(data || []);
-
-        const savedHoa = localStorage.getItem("activeHoa");
-
-if (savedHoa) {
-  const parsed = JSON.parse(savedHoa);
-
-// ONLY use if it exists in visible list
-  const exists = visible.find((h: any) => h.id === parsed.id);
-
-  if (exists) {
-    setActiveHoa(exists);
-  } else if (visible.length > 0) {
-    setActiveHoa(visible[0]);
-  }
-
-} else if (visible.length > 0) {
-  setActiveHoa(visible[0]);
-}
-
-        setLoading(false);
-        return;
+        visible = data || [];
       }
 
       // =========================
       // HOA ADMIN / MEMBER
       // =========================
-      const { data } = await supabase
-        .from("association_members")
-        .select(`
-          association_id,
-          associations (
-            id,
-            name,
-            environment
-          )
-        `)
-        .eq("user_id", user.id);
+      else {
+        const { data } = await supabase
+          .from("association_members")
+          .select(`
+            association_id,
+            associations (
+              id,
+              name,
+              environment
+            )
+          `)
+          .eq("user_id", user.id);
 
-      const visible =
-        data?.map((x: any) => x.associations).filter(Boolean) || [];
+        visible =
+          data?.map((x: any) => x.associations).filter(Boolean) || [];
+      }
 
       setAssociations(visible);
 
+      // =========================
+      // DEFAULT HOA LOGIC (CASA VERANO PRIORITY)
+      // =========================
       const savedHoa = localStorage.getItem("activeHoa");
 
-if (savedHoa) {
-  const parsed = JSON.parse(savedHoa);
+      if (savedHoa) {
+        const parsed = JSON.parse(savedHoa);
 
-// ONLY use if it exists in visible list
-  const exists = visible.find((h: any) => h.id === parsed.id);
+        const exists = visible.find(
+          (h: any) => h.id === parsed.id
+        );
 
-  if (exists) {
-    setActiveHoa(exists);
-  } else if (visible.length > 0) {
-    setActiveHoa(visible[0]);
-  }
-
-} else if (visible.length > 0) {
-  setActiveHoa(visible[0]);
-}
+        if (exists) {
+          setActiveHoa(exists);
+        } else if (visible.length > 0) {
+          setActiveHoa(
+            visible.find(
+              (h: any) =>
+                h.name === "Casa Verano Condominium Association"
+            ) || visible[0]
+          );
+        }
+      } else if (visible.length > 0) {
+        setActiveHoa(
+          visible.find(
+            (h: any) =>
+              h.name === "Casa Verano Condominium Association"
+          ) || visible[0]
+        );
+      }
 
       setLoading(false);
     };
 
     load();
-  }, []); // ✅ FIXED: prevents reload loop
+  }, [setActiveHoa]);
 
   if (loading) {
     return <div style={styles.loading}>Loading HOA...</div>;
@@ -129,7 +126,10 @@ if (savedHoa) {
   return (
     <div style={styles.wrapper}>
       {/* HEADER */}
-      <div style={styles.header} onClick={() => setOpen(!open)}>
+      <div
+        style={styles.header}
+        onClick={() => setOpen(!open)}
+      >
         🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
       </div>
 
@@ -139,7 +139,9 @@ if (savedHoa) {
           {/* 🟢 PRODUCTION */}
           {production.length > 0 && (
             <>
-              <div style={styles.sectionHeader}>Production HOAs</div>
+              <div style={styles.sectionHeader}>
+                Production HOAs
+              </div>
 
               {production.map((hoa) => (
                 <div
@@ -159,12 +161,14 @@ if (savedHoa) {
           {/* 🟡 SANDBOX */}
           {sandbox.length > 0 && (
             <>
-              <div style={styles.sectionHeader}>🧪 Sandbox HOAs</div>
+              <div style={styles.sectionHeader}>
+                🧪 Sandbox HOAs
+              </div>
 
               {sandbox.map((hoa) => (
                 <div
                   key={hoa.id}
-                  style={styles.item}   // ✅ FIXED: removed yellow override
+                  style={styles.item}
                   onClick={() => {
                     setActiveHoa(hoa);
                     setOpen(false);
