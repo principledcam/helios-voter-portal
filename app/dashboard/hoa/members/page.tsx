@@ -1,6 +1,8 @@
 "use client";
 
 import { useHoaQuery } from "@/app/hooks/useHoaQuery";
+import { useHoa } from "@/app/context/HoaContext";
+import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { logAudit } from "@/lib/audit/logAudit";
 
@@ -10,12 +12,38 @@ const supabase = createBrowserClient(
 );
 
 export default function MembersPage() {
+  const { activeHoa } = useHoa();
+
   const {
     data: members,
     loading,
     error,
     refetch,
   } = useHoaQuery("association_members");
+
+  // 🟢 REAL PROFILE LOADING (SYSTEM ADMIN CHECK FIX)
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data } = await supabase.auth.getUser();
+
+      if (!data?.user) return;
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
+      setProfile(profileData);
+    };
+
+    loadProfile();
+  }, []);
+
+  // 🟢 SYSTEM ADMIN FLAG
+  const canPromoteToAdmin = profile?.is_system_admin === true;
 
   const updateRole = async (id: string, newRole: string) => {
     const { data: existingMember } = await supabase
@@ -91,21 +119,12 @@ export default function MembersPage() {
   };
 
   if (loading) {
-    return (
-      <div style={{ padding: 30 }}>
-        Loading members...
-      </div>
-    );
+    return <div style={{ padding: 30 }}>Loading members...</div>;
   }
 
   if (error) {
     return (
-      <div
-        style={{
-          padding: 30,
-          color: "red",
-        }}
-      >
+      <div style={{ padding: 30, color: "red" }}>
         Error loading members
       </div>
     );
@@ -144,21 +163,18 @@ export default function MembersPage() {
                 marginTop: 10,
               }}
             >
-              <button
-                onClick={() => updateRole(m.id, "admin")}
-              >
-                Make Admin
-              </button>
+              {/* 🟢 SYSTEM ADMIN ONLY CONTROL */}
+              {canPromoteToAdmin && (
+                <button onClick={() => updateRole(m.id, "admin")}>
+                  Make Admin
+                </button>
+              )}
 
-              <button
-                onClick={() => updateRole(m.id, "member")}
-              >
+              <button onClick={() => updateRole(m.id, "member")}>
                 Make Member
               </button>
 
-              <button
-                onClick={() => removeMember(m.id)}
-              >
+              <button onClick={() => removeMember(m.id)}>
                 Remove
               </button>
             </div>
