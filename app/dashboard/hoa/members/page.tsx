@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useHoaQuery } from "@/app/hooks/useHoaQuery";
 import { createBrowserClient } from "@supabase/ssr";
 import { logAudit } from "@/lib/audit/logAudit";
 
@@ -10,23 +10,14 @@ const supabase = createBrowserClient(
 );
 
 export default function MembersPage() {
-  const [members, setMembers] = useState<any[]>([]);
-
-  const load = async () => {
-    const { data } = await supabase
-      .from("association_members")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    setMembers(data || []);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const {
+    data: members,
+    loading,
+    error,
+    refetch,
+  } = useHoaQuery("association_members");
 
   const updateRole = async (id: string, newRole: string) => {
-    // Get current member first
     const { data: existingMember } = await supabase
       .from("association_members")
       .select("*")
@@ -50,11 +41,9 @@ export default function MembersPage() {
       return;
     }
 
-    // Get current logged-in user
     const { data: authData } = await supabase.auth.getUser();
     const authUser = authData?.user;
 
-    // Write audit record
     try {
       await logAudit({
         supabase,
@@ -84,47 +73,98 @@ export default function MembersPage() {
       console.error("Audit log failed:", err.message);
     }
 
-    load();
+    await refetch();
   };
 
   const removeMember = async (id: string) => {
-    await supabase
+    const { error } = await supabase
       .from("association_members")
       .delete()
       .eq("id", id);
 
-    load();
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await refetch();
   };
+
+  if (loading) {
+    return (
+      <div style={{ padding: 30 }}>
+        Loading members...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        style={{
+          padding: 30,
+          color: "red",
+        }}
+      >
+        Error loading members
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 30 }}>
       <h1>👥 Members</h1>
 
-      {members.map((m) => (
-        <div
-          key={m.id}
-          style={{
-            border: "1px solid #eee",
-            padding: 10,
-            marginBottom: 10,
-          }}
-        >
-          <p>User: {m.user_id}</p>
-          <p>Role: {m.role}</p>
+      {members.length === 0 ? (
+        <p>No members found for the selected HOA.</p>
+      ) : (
+        members.map((m: any) => (
+          <div
+            key={m.id}
+            style={{
+              border: "1px solid #eee",
+              padding: 10,
+              marginBottom: 10,
+              borderRadius: 8,
+              background: "#fff",
+            }}
+          >
+            <p>
+              <strong>User:</strong> {m.user_id}
+            </p>
 
-          <button onClick={() => updateRole(m.id, "admin")}>
-            Make Admin
-          </button>
+            <p>
+              <strong>Role:</strong> {m.role}
+            </p>
 
-          <button onClick={() => updateRole(m.id, "member")}>
-            Make Member
-          </button>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                marginTop: 10,
+              }}
+            >
+              <button
+                onClick={() => updateRole(m.id, "admin")}
+              >
+                Make Admin
+              </button>
 
-          <button onClick={() => removeMember(m.id)}>
-            Remove
-          </button>
-        </div>
-      ))}
+              <button
+                onClick={() => updateRole(m.id, "member")}
+              >
+                Make Member
+              </button>
+
+              <button
+                onClick={() => removeMember(m.id)}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }

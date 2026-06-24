@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useHoaQuery } from "@/app/hooks/useHoaQuery";
 
 export default function AdminPage() {
@@ -48,6 +49,33 @@ export default function AdminPage() {
         Manage users and HOA assignments
       </p>
 
+      {/* ADMIN ACTIONS */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          marginTop: 20,
+          marginBottom: 30,
+        }}
+      >
+        <Link href="/dashboard/hoa/associations" style={styles.button}>
+          🏘️ Manage Associations
+        </Link>
+
+        <Link href="/dashboard/hoa/members" style={styles.button}>
+          👥 Manage Members
+        </Link>
+
+        <Link href="/dashboard/hoa/invites" style={styles.button}>
+          ✉️ Invite Users
+        </Link>
+
+        <Link href="/dashboard/elections/create" style={styles.button}>
+          🗳️ Create Election
+        </Link>
+      </div>
+
       {/* HOA SUMMARY */}
       <div style={{ marginTop: 20 }}>
         <h3>HOAs</h3>
@@ -92,7 +120,12 @@ export default function AdminPage() {
                 <strong>Role:</strong> {m.role}
               </div>
 
-              <div style={{ fontSize: 12, color: "#666" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#666",
+                }}
+              >
                 HOA: {m.associations?.name}
               </div>
             </div>
@@ -102,3 +135,15 @@ export default function AdminPage() {
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  button: {
+    padding: "10px 14px",
+    background: "#08224D",
+    color: "#fff",
+    textDecoration: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    display: "inline-block",
+  },
+};
