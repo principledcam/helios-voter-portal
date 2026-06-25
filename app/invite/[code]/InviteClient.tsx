@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useRouter } from "next/navigation";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,9 +12,15 @@ const supabase = createBrowserClient(
 export default function InviteClient({ invite }: { invite: any }) {
   const [loading, setLoading] = useState(false);
 
+  // 🟢 NEXT.JS ROUTER (SAFE REDIRECT)
+  const router = useRouter();
+
   const acceptInvite = async () => {
     setLoading(true);
 
+    // =========================
+    // GET AUTH SESSION
+    // =========================
     const { data } = await supabase.auth.getSession();
     const session = data.session;
 
@@ -23,6 +30,9 @@ export default function InviteClient({ invite }: { invite: any }) {
       return;
     }
 
+    // =========================
+    // CALL ACCEPT API
+    // =========================
     const res = await fetch("/api/invite/accept", {
       method: "POST",
       headers: {
@@ -38,12 +48,18 @@ export default function InviteClient({ invite }: { invite: any }) {
 
     setLoading(false);
 
+    // =========================
+    // ERROR HANDLING
+    // =========================
     if (!res.ok) {
-      alert(result.error);
+      alert(result.error || "Failed to accept invite");
       return;
     }
 
-    window.location.href = "/dashboard/hoa";
+    // =========================
+    // SUCCESS → NAVIGATE
+    // =========================
+    router.push("/dashboard/hoa");
   };
 
   return (
