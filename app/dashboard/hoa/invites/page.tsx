@@ -31,16 +31,18 @@ export default function InvitesPage() {
     try {
       const code = crypto.randomUUID();
 
-      const { error } = await supabase
+      // 🟢 STEP 1 — CREATE INVITE IN DATABASE
+      const { data: invite, error } = await supabase
         .from("association_invites")
         .insert({
           email: email.trim(),
           association_id: activeHoa.id,
           invite_code: code,
-          expires_at: new Date(
-            Date.now() + 7 * 86400000
-          ).toISOString(),
-        });
+          expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+          consumed: false,
+        })
+        .select()
+        .single();
 
       if (error) {
         alert(error.message);
@@ -48,7 +50,25 @@ export default function InvitesPage() {
         return;
       }
 
-      alert(`Invite created: ${code}`);
+      // 🟢 STEP 2 — TRIGGER EMAIL EDGE FUNCTION
+      const { error: emailError } = await supabase.functions.invoke(
+        "send-invite-email",
+        {
+          body: {
+            email: invite.email,
+            invite_code: invite.invite_code,
+            association_name: activeHoa.name,
+            role: invite.role || "member",
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error("Email function error:", emailError.message);
+        alert("Invite created but email failed to send.");
+      } else {
+        alert("Invite created and email sent!");
+      }
 
       setEmail("");
     } catch (err: any) {
