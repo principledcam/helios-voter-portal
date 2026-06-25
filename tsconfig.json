@@ -28,6 +28,7 @@
       ]
     }
   },
+
   "include": [
     "next-env.d.ts",
     "**/*.ts",
@@ -36,7 +37,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
+
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "supabase/functions"
   ]
 }
