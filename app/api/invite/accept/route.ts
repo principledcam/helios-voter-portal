@@ -1,31 +1,31 @@
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-// 🧱 Server Supabase (IMPORTANT: NOT browser client)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // 🔥 REQUIRED for secure server operations
-);
-
 export async function POST(req: Request) {
-  try {
-    const { invite_code } = await req.json();
+  const cookieStore = cookies();
 
-    if (!invite_code) {
-      return NextResponse.json(
-        { error: "Missing invite code" },
-        { status: 400 }
-      );
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
     }
+  );
 
+  try {
     // =========================
-    // 1. GET AUTH USER
+    // AUTH CHECK
     // =========================
-    const authHeader = req.headers.get("Authorization");
-
+    const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return NextResponse.json(
-        { error: "Not authenticated" },
+        { error: "Missing authorization" },
         { status: 401 }
       );
     }
@@ -44,8 +44,18 @@ export async function POST(req: Request) {
       );
     }
 
+    const body = await req.json();
+    const { invite_code } = body;
+
+    if (!invite_code) {
+      return NextResponse.json(
+        { error: "Missing invite code" },
+        { status: 400 }
+      );
+    }
+
     // =========================
-    // 2. FETCH INVITE
+    // GET INVITE
     // =========================
     const { data: invite, error: inviteError } = await supabase
       .from("association_invites")
@@ -61,94 +71,78 @@ export async function POST(req: Request) {
     }
 
     // =========================
-    // 3. VALIDATE INVITE STATE
+    // VALIDATION
     // =========================
     if (invite.consumed) {
       return NextResponse.json(
         { error: "Invite already used" },
-        { status: 409 }
+        { status: 400 }
       );
     }
 
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+    const now = new Date().toISOString();
+    if (invite.expires_at && invite.expires_at < now) {
       return NextResponse.json(
         { error: "Invite expired" },
-        { status: 410 }
+        { status: 400 }
       );
     }
 
     // =========================
-    // 4. PREVENT DUPLICATE MEMBERSHIP
+    // CHECK MEMBERSHIP (DO NOT BLOCK FLOW)
     // =========================
     const { data: existingMember } = await supabase
       .from("association_members")
       .select("*")
       .eq("user_id", user.id)
       .eq("association_id", invite.association_id)
-      .maybeSingle();
+      .single();
 
-    if (existingMember) {
-      return NextResponse.json(
-        { error: "Already a member" },
-        { status: 409 }
-      );
+    let action = "created";
+
+    // =========================
+    // INSERT ONLY IF NOT EXISTS
+    // =========================
+    if (!existingMember) {
+      const { error: insertError } = await supabase
+        .from("association_members")
+        .insert({
+          user_id: user.id,
+          association_id: invite.association_id,
+          role: invite.role || "member",
+        });
+
+      if (insertError) {
+        return NextResponse.json(
+          { error: insertError.message },
+          { status: 500 }
+        );
+      }
+    } else {
+      action = "already_member";
     }
 
     // =========================
-    // 5. INSERT MEMBERSHIP
+    // ALWAYS MARK INVITE CONSUMED
     // =========================
-    const { error: insertError } = await supabase
-      .from("association_members")
-      .insert({
-        user_id: user.id,
-        association_id: invite.association_id,
-        role: invite.role || "member",
-      });
-
-    if (insertError) {
-      return NextResponse.json(
-        { error: insertError.message },
-        { status: 500 }
-      );
-    }
-
-    // =========================
-    // 6. MARK INVITE CONSUMED
-    // =========================
-    const { error: consumeError } = await supabase
+    const { error: updateError } = await supabase
       .from("association_invites")
-      .update({
-        consumed: true,
-      })
-      .eq("id", invite.id);
+      .update({ consumed: true })
+      .eq("invite_code", invite_code);
 
-    if (consumeError) {
+    if (updateError) {
       return NextResponse.json(
-        { error: "Failed to mark invite consumed" },
+        { error: updateError.message },
         { status: 500 }
       );
     }
 
     // =========================
-    // 7. AUDIT LOG (OPTIONAL BUT RECOMMENDED)
-    // =========================
-    await supabase.from("audit_logs").insert({
-      action: "invite_accepted",
-      user_id: user.id,
-      association_id: invite.association_id,
-      entity_type: "association_invite",
-      entity_id: invite.id,
-      metadata: {
-        invite_code,
-        role: invite.role,
-      },
-    });
-
-    // =========================
-    // 8. SUCCESS RESPONSE
+    // SUCCESS RESPONSE
     // =========================
     return NextResponse.json({
       success: true,
+      action,
       association_id: invite.association_id,
     });
   } catch (err: any) {
