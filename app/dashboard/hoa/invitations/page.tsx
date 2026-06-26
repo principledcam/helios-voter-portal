@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useHoa } from "@/app/context/HoaContext";
+import RoleGuard from "@/components/RoleGuard";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,15 +35,20 @@ export default function InvitationsPage() {
     if (activeHoa?.id) {
       loadInvites();
     }
-  }, [activeHoa]);
+  }, [activeHoa?.id]);
 
   async function loadInvites() {
+    if (!activeHoa?.id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     const { data, error } = await supabase
       .from("association_invites")
       .select("*")
-      .eq("association_id", activeHoa!.id)
+      .eq("association_id", activeHoa.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -81,129 +87,151 @@ export default function InvitationsPage() {
   }, [invites, search, filter]);
 
   async function revokeInvite(id: string) {
-  await fetch("/api/invitations/revoke", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      invite_id: id,
-    }),
-  });
+    await fetch("/api/invitations/revoke", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        invite_id: id,
+      }),
+    });
 
-  loadInvites();
-}
+    loadInvites();
+  }
 
-async function resendInvite(id: string) {
-  await fetch("/api/invitations/resend", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      invite_id: id,
-    }),
-  });
+  async function resendInvite(id: string) {
+    await fetch("/api/invitations/resend", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        invite_id: id,
+      }),
+    });
 
-  loadInvites();
-}
+    loadInvites();
+  }
 
   if (loading) {
     return (
-      <div style={{ padding: 30 }}>
-        Loading invitations...
-      </div>
+      <RoleGuard>
+        <div style={{ padding: 30 }}>
+          Loading invitations...
+        </div>
+      </RoleGuard>
     );
   }
 
   return (
-    <div style={{ padding: 30 }}>
-      <h1>✉️ Invitations</h1>
+    <RoleGuard>
+      <div style={{ padding: 30 }}>
+        <h1>✉️ Invitations</h1>
 
-      <div style={{ marginBottom: 20 }}>
-        <strong>Active HOA:</strong>{" "}
-        {activeHoa?.name}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
-        <input
-          placeholder="Search email..."
-          value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
+        <div
           style={{
-            padding: 10,
-            width: 300,
+            marginBottom: 20,
+            padding: 12,
+            background: "#f5f5f5",
+            borderRadius: 8,
           }}
-        />
-
-        <select
-          value={filter}
-          onChange={(e) =>
-            setFilter(e.target.value)
-          }
         >
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="expired">Expired</option>
-          <option value="revoked">Revoked</option>
-        </select>
-      </div>
+          <strong>Active HOA:</strong>{" "}
+          {activeHoa?.name || "No HOA Selected"}
+        </div>
 
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-        }}
-      >
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Sent</th>
-            <th>Expires</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <input
+            placeholder="Search email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              padding: 10,
+              width: 300,
+            }}
+          />
 
-        <tbody>
-          {filteredInvites.map((invite) => {
-            const status = getStatus(invite);
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="expired">Expired</option>
+            <option value="revoked">Revoked</option>
+          </select>
+        </div>
 
-            return (
-              <tr key={invite.id}>
-                <td>{invite.email}</td>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+          }}
+        >
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Sent</th>
+              <th>Expires</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-                <td>
-                  {invite.role || "member"}
-                </td>
+          <tbody>
+            {filteredInvites.map((invite) => {
+              const status = getStatus(invite);
 
-                <td>{status}</td>
+              return (
+                <tr key={invite.id}>
+                  <td>{invite.email}</td>
 
-                <td>
-                  {new Date(
-                    invite.created_at
-                  ).toLocaleDateString()}
-                </td>
+                  <td>{invite.role || "member"}</td>
 
-                <td>
-                  {new Date(
-                    invite.expires_at
-                  ).toLocaleDateString()}
-                </td>
+                  <td>{status}</td>
 
-                <td>
-                  {status === "Pending" && (
-                    <>
+                  <td>
+                    {new Date(
+                      invite.created_at
+                    ).toLocaleDateString()}
+                  </td>
+
+                  <td>
+                    {new Date(
+                      invite.expires_at
+                    ).toLocaleDateString()}
+                  </td>
+
+                  <td>
+                    {status === "Pending" && (
+                      <>
+                        <button
+                          onClick={() =>
+                            resendInvite(invite.id)
+                          }
+                        >
+                          Resend
+                        </button>{" "}
+                        <button
+                          onClick={() =>
+                            revokeInvite(invite.id)
+                          }
+                        >
+                          Revoke
+                        </button>
+                      </>
+                    )}
+
+                    {status === "Expired" && (
                       <button
                         onClick={() =>
                           resendInvite(invite.id)
@@ -211,40 +239,18 @@ async function resendInvite(id: string) {
                       >
                         Resend
                       </button>
+                    )}
 
-                      {" "}
+                    {status === "Accepted" && "Accepted"}
 
-                      <button
-                        onClick={() =>
-                          revokeInvite(invite.id)
-                        }
-                      >
-                        Revoke
-                      </button>
-                    </>
-                  )}
-
-                  {status === "Expired" && (
-                    <button
-                      onClick={() =>
-                        resendInvite(invite.id)
-                      }
-                    >
-                      Resend
-                    </button>
-                  )}
-
-                  {status === "Accepted" &&
-                    "Accepted"}
-
-                  {status === "Revoked" &&
-                    "Revoked"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                    {status === "Revoked" && "Revoked"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </RoleGuard>
   );
 }

@@ -3,17 +3,6 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get("authorization");
-
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: "Missing auth header" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -30,7 +19,9 @@ export async function POST(req: Request) {
 
     const { error } = await supabase
       .from("association_invites")
-      .update({ revoked: true })
+      .update({
+        revoked: true,
+      })
       .eq("id", invite_id);
 
     if (error) {
@@ -40,11 +31,18 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: "Invitation revoked.",
+    });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
+      {
+        error: err.message,
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

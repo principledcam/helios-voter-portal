@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // STEP 1 — get invite
+    // Load existing invitation
     const { data: invite, error } = await supabase
       .from("association_invites")
       .select("*")
@@ -31,23 +31,30 @@ export async function POST(req: Request) {
       );
     }
 
-    // STEP 2 — regenerate invite code
+    // Generate new invite code
     const newCode = crypto.randomUUID();
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("association_invites")
       .update({
         invite_code: newCode,
         consumed: false,
         revoked: false,
         expires_at: new Date(
-          Date.now() + 7 * 86400000
+          Date.now() + 7 * 24 * 60 * 60 * 1000
         ).toISOString(),
       })
       .eq("id", invite_id);
 
-    // STEP 3 — call Edge Function (email)
-    await fetch(
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    // Send email through Edge Function
+    const response = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite-email`,
       {
         method: "POST",
@@ -58,17 +65,38 @@ export async function POST(req: Request) {
           email: invite.email,
           invite_code: newCode,
           association_name:
-            invite.association_name || "HOA",
+            invite.association_name ||
+            "Principled CAM Association",
           role: invite.role || "member",
         }),
       }
     );
 
-    return NextResponse.json({ success: true });
+    if (!response.ok) {
+      const text = await response.text();
+
+      return NextResponse.json(
+        {
+          error: text,
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Invitation resent successfully.",
+    });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
+      {
+        error: err.message,
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
