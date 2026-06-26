@@ -1,10 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY")!);
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders,
+    });
+  }
+
   try {
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
     const {
       email,
       invite_code,
@@ -12,86 +24,54 @@ serve(async (req) => {
       role,
     } = await req.json();
 
-    if (!email || !invite_code || !association_name) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400 }
-      );
-    }
-
     const inviteUrl = `https://vote.principledcam.com/invite/${invite_code}`;
 
-    const { data, error } = await resend.emails.send({
+    const result = await resend.emails.send({
       from: "Principled CAM <noreply@principledcam.com>",
       to: email,
-      subject: `You've been invited to ${association_name}`,
+      subject: `You're invited to ${association_name}`,
       html: `
-        <div style="font-family:Arial;padding:20px">
-          <h2>You're Invited</h2>
+        <h2>You've been invited!</h2>
 
-          <p>Hello,</p>
+        <p>You have been invited to join <strong>${association_name}</strong>.</p>
 
-          <p>
-            You have been invited to join the
-            <strong>${association_name}</strong> voting portal.
-          </p>
+        <p>Role: ${role}</p>
 
-          <p><strong>Role:</strong> ${role}</p>
-
-          <p>
-            Click below to accept your invitation:
-          </p>
-
-          <a href="${inviteUrl}"
-             style="display:inline-block;
-                    padding:10px 15px;
-                    background:#111;
-                    color:#fff;
-                    text-decoration:none;
-                    border-radius:6px;">
+        <p>
+          <a href="${inviteUrl}">
             Accept Invitation
           </a>
+        </p>
 
-          <p style="margin-top:20px;color:#666;font-size:12px">
-            This invitation expires in 7 days.
-          </p>
-
-          <hr />
-
-          <p style="font-size:12px;color:#888">
-            Principled CAM Voting System
-          </p>
-        </div>
-      `,
-      text: `
-You have been invited to ${association_name}.
-
-Role: ${role}
-
-Accept your invitation:
-${inviteUrl}
-
-This invitation expires in 7 days.
+        <p>This invitation expires in 7 days.</p>
       `,
     });
 
-    if (error) {
-      console.error("Resend error:", error);
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 500 }
-      );
-    }
-
-    return new Response(JSON.stringify({ success: true, data }), {
-      status: 200,
-    });
-
-  } catch (err: any) {
-    console.error("Function error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 }
+      JSON.stringify(result),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+  } catch (err) {
+    console.error(err);
+
+    return new Response(
+      JSON.stringify({
+        error: err.message,
+        stack: err.stack,
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
     );
   }
 });
