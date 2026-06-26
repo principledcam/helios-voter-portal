@@ -27,7 +27,7 @@ export default function HoaSwitcher() {
         return;
       }
 
-      // 🟢 GET USER PROFILE (ROLE CHECK ONLY)
+      // 🟢 GET USER PROFILE
       const { data: profile } = await supabase
         .from("profiles")
         .select("role, is_system_admin")
@@ -73,39 +73,52 @@ export default function HoaSwitcher() {
       // =========================
       // DEFAULT HOA LOGIC
       // =========================
+
       const savedHoa = localStorage.getItem("activeHoa");
 
+      let nextHoa: any = null;
+
       if (savedHoa) {
-        const parsed = JSON.parse(savedHoa);
+        try {
+          const parsed = JSON.parse(savedHoa);
 
-        const exists = visible.find(
-          (h: any) => h.id === parsed.id
-        );
-
-        if (exists) {
-          setActiveHoa(exists);
-        } else if (visible.length > 0) {
-          setActiveHoa(
+          nextHoa =
+            visible.find((h: any) => h.id === parsed.id) ||
             visible.find(
               (h: any) =>
-                h.name === "Casa Verano Condominium Association"
-            ) || visible[0]
-          );
+                h.name ===
+                "Casa Verano Condominium Association"
+            ) ||
+            visible[0];
+        } catch {
+          nextHoa =
+            visible.find(
+              (h: any) =>
+                h.name ===
+                "Casa Verano Condominium Association"
+            ) ||
+            visible[0];
         }
-      } else if (visible.length > 0) {
-        setActiveHoa(
+      } else {
+        nextHoa =
           visible.find(
             (h: any) =>
-              h.name === "Casa Verano Condominium Association"
-          ) || visible[0]
-        );
+              h.name ===
+              "Casa Verano Condominium Association"
+          ) ||
+          visible[0];
+      }
+
+      // ⭐ ONLY UPDATE IF HOA CHANGED
+      if (nextHoa && nextHoa.id !== activeHoa?.id) {
+        setActiveHoa(nextHoa);
       }
 
       setLoading(false);
     };
 
     load();
-  }, [setActiveHoa]);
+  }, [activeHoa?.id]);
 
   if (loading) {
     return <div style={styles.loading}>Loading HOA...</div>;
@@ -125,14 +138,17 @@ export default function HoaSwitcher() {
   return (
     <div style={styles.wrapper}>
       {/* HEADER */}
-      <div style={styles.header} onClick={() => setOpen(!open)}>
+      <div
+        style={styles.header}
+        onClick={() => setOpen(!open)}
+      >
         🏛️ HOA: {activeHoa?.name || "Select HOA"} ⌄
       </div>
 
       {/* DROPDOWN */}
       {open && (
         <div style={styles.dropdown}>
-          {/* 🟢 PRODUCTION */}
+          {/* PRODUCTION */}
           {production.length > 0 && (
             <>
               <div style={styles.sectionHeader}>
@@ -144,7 +160,9 @@ export default function HoaSwitcher() {
                   key={hoa.id}
                   style={styles.item}
                   onClick={() => {
-                    setActiveHoa(hoa);
+                    if (hoa.id !== activeHoa?.id) {
+                      setActiveHoa(hoa);
+                    }
                     setOpen(false);
                   }}
                 >
@@ -154,7 +172,7 @@ export default function HoaSwitcher() {
             </>
           )}
 
-          {/* 🟡 SANDBOX */}
+          {/* SANDBOX */}
           {sandbox.length > 0 && (
             <>
               <div style={styles.sectionHeader}>
@@ -166,7 +184,9 @@ export default function HoaSwitcher() {
                   key={hoa.id}
                   style={styles.item}
                   onClick={() => {
-                    setActiveHoa(hoa);
+                    if (hoa.id !== activeHoa?.id) {
+                      setActiveHoa(hoa);
+                    }
                     setOpen(false);
                   }}
                 >
