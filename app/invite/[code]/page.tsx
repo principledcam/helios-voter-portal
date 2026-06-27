@@ -37,12 +37,44 @@ export default async function InvitePage({
     .single();
 
   // =========================
-  // INVALID INVITE HANDLING
+  // INVALID INVITE
   // =========================
   if (error || !invite) {
     return (
       <div style={{ padding: 40 }}>
         <h1>Invalid Invite</h1>
+        <p>This invitation link is not valid.</p>
+      </div>
+    );
+  }
+
+  // =========================
+  // HARD SECURITY CHECKS (SERVER ENFORCED)
+  // =========================
+
+  if (invite.revoked) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h1>Invitation Revoked</h1>
+        <p>This invitation has been revoked.</p>
+      </div>
+    );
+  }
+
+  if (invite.consumed) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h1>Already Used</h1>
+        <p>This invitation has already been accepted.</p>
+      </div>
+    );
+  }
+
+  if (new Date(invite.expires_at) < new Date()) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h1>Invitation Expired</h1>
+        <p>This invitation has expired.</p>
       </div>
     );
   }
