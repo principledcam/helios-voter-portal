@@ -2,6 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
+  // ✅ TEMPORARY DEBUG LOG
+  console.log("OPEN TRACKED:", req.url);
+
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
@@ -22,16 +25,25 @@ export async function GET(req: Request) {
     .single();
 
   if (!invite) {
+    console.log("OPEN TRACKED: Invite not found for code:", code);
     return NextResponse.json({ ok: true });
   }
 
-  // Log open event (non-blocking analytics)
-  await supabase.from("invite_audit_logs").insert({
-    invite_id: invite.id,
-    association_id: invite.association_id,
-    email: invite.email,
-    action: "opened",
-  });
+  // Log open event
+  const { error } = await supabase
+    .from("invite_audit_logs")
+    .insert({
+      invite_id: invite.id,
+      association_id: invite.association_id,
+      email: invite.email,
+      action: "opened",
+    });
+
+  if (error) {
+    console.error("Failed to write invite audit log:", error);
+  } else {
+    console.log("Invite open logged for:", invite.email);
+  }
 
   // Return 1x1 transparent pixel
   const pixel =
