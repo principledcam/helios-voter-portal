@@ -117,6 +117,46 @@ export default function InvitationAnalyticsPage() {
   ).length;
 
   // =========================
+// CLICK METRIC
+// =========================
+const clicks = logs.filter(
+  (l) => l.action === "clicked"
+).length;
+
+// =========================
+// CONVERSION RATES
+// =========================
+const openRate =
+  stats.total === 0
+    ? 0
+    : (emailsSent / stats.total) * 100;
+
+const clickRate =
+  emailsSent === 0
+    ? 0
+    : (clicks / emailsSent) * 100;
+
+const acceptRate =
+  clicks === 0
+    ? 0
+    : (stats.accepted / clicks) * 100;
+
+const overallConversion =
+  stats.total === 0
+    ? 0
+    : (stats.accepted / stats.total) * 100;
+
+    // =========================
+// TREND CALCULATIONS
+// (Temporary until historical snapshots exist)
+// =========================
+
+const openTrend = 0;
+const clickTrend = 0;
+const acceptTrend = 0;
+const conversionTrend = 0;
+
+  // =========================
   // FUNNEL DATA (RECHARTS)
   // =========================
   const funnelData = [
@@ -156,16 +196,40 @@ export default function InvitationAnalyticsPage() {
             KPI CARDS
         ========================= */}
         <div style={styles.grid}>
-          <Card label="Total Invites" value={stats.total} />
-          <Card label="Active" value={stats.active} />
-          <Card label="Accepted" value={stats.accepted} />
-          <Card label="Expired" value={stats.expired} />
-          <Card label="Revoked" value={stats.revoked} />
-          <Card
-            label="Success Rate"
-            value={`${stats.successRate}%`}
-          />
-        </div>
+  <Card label="Total Invites" value={stats.total} />
+  <Card label="Active" value={stats.active} />
+  <Card label="Accepted" value={stats.accepted} />
+  <Card label="Expired" value={stats.expired} />
+  <Card label="Revoked" value={stats.revoked} />
+  <Card
+    label="Success Rate"
+    value={`${stats.successRate}%`}
+  />
+
+  <Card
+  label="Open Rate"
+  value={`${openRate.toFixed(1)}%`}
+  trend={openTrend}
+/>
+
+  <Card
+  label="Click Rate"
+  value={`${clickRate.toFixed(1)}%`}
+  trend={clickTrend}
+/>
+
+<Card
+  label="Acceptance Rate"
+  value={`${acceptRate.toFixed(1)}%`}
+  trend={acceptTrend}
+/>
+
+<Card
+  label="Overall Conversion"
+  value={`${overallConversion.toFixed(1)}%`}
+  trend={conversionTrend}
+/>
+</div>
 
         {/* =========================
             FUNNEL VISUALIZATION (RECHARTS)
@@ -219,14 +283,63 @@ export default function InvitationAnalyticsPage() {
 function Card({
   label,
   value,
+  trend,
 }: {
   label: string;
   value: any;
+  trend?: number;
 }) {
+  let borderColor = "#28A8A8";
+
+  const numeric =
+    typeof value === "string"
+      ? parseFloat(value)
+      : value;
+
+  if (
+    label.includes("Rate") ||
+    label.includes("Conversion")
+  ) {
+    if (numeric >= 80) borderColor = "#16A34A";
+    else if (numeric >= 60) borderColor = "#F59E0B";
+    else borderColor = "#DC2626";
+  }
+
   return (
-    <div style={styles.card}>
-      <div style={styles.cardLabel}>{label}</div>
-      <div style={styles.cardValue}>{value}</div>
+    <div
+      style={{
+        ...styles.card,
+        borderLeft: `6px solid ${borderColor}`,
+      }}
+    >
+      <div style={styles.cardLabel}>
+        {label}
+      </div>
+
+      <div style={styles.cardValue}>
+        {value}
+      </div>
+
+      {trend !== undefined && (
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            color:
+              trend > 0
+                ? "#16A34A"
+                : trend < 0
+                ? "#DC2626"
+                : "#666",
+          }}
+        >
+          {trend > 0 && "▲"}
+          {trend < 0 && "▼"}
+          {trend === 0 && "•"}{" "}
+          {Math.abs(trend).toFixed(1)}%
+        </div>
+      )}
     </div>
   );
 }
@@ -244,11 +357,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   card: {
-    padding: 16,
-    background: "#fff",
-    border: "1px solid #eee",
-    borderRadius: 8,
-  },
+  padding: 18,
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 10,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+},
 
   cardLabel: {
     fontSize: 12,
