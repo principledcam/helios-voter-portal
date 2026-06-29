@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server";
-import { resendInvite } from "@/lib/invitations/inviteService";
+import { createInvite } from "@/lib/invitations/inviteService";
 
 export async function POST(req: Request) {
   try {
-    const { invite_id } = await req.json();
+    const body = await req.json();
 
-    if (!invite_id) {
-      return NextResponse.json(
-        { error: "Missing invite_id" },
-        { status: 400 }
-      );
-    }
+    const invite = await createInvite({
+      email: body.email,
+      association_id: body.association_id,
+      role: body.role,
+    });
 
-    const { invite, newCode } = await resendInvite(invite_id);
-
+    // Edge function email
     await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite-email`,
       {
@@ -23,14 +21,17 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           email: invite.email,
-          invite_code: newCode,
-          association_name: "HOA",
-          role: invite.role || "member",
+          invite_code: invite.invite_code,
+          association_name: body.association_name,
+          role: invite.role,
         }),
       }
     );
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      invite,
+    });
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message },

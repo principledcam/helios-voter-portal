@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useHoa } from "@/app/context/HoaContext";
 import RoleGuard from "@/components/RoleGuard";
+import {
+  getInviteStatus,
+} from "@/lib/invitations/inviteValidation";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,24 +62,13 @@ export default function InvitationsPage() {
     setLoading(false);
   }
 
-  function getStatus(invite: Invite) {
-    if (invite.revoked) return "Revoked";
-    if (invite.consumed) return "Accepted";
-
-    if (new Date(invite.expires_at) < new Date()) {
-      return "Expired";
-    }
-
-    return "Pending";
-  }
-
   const filteredInvites = useMemo(() => {
     return invites.filter((invite) => {
       const matchesEmail = invite.email
         .toLowerCase()
         .includes(search.toLowerCase());
 
-      const status = getStatus(invite);
+      const status = getInviteStatus(invite);
 
       const matchesStatus =
         filter === "all" ||
@@ -189,7 +181,7 @@ export default function InvitationsPage() {
 
           <tbody>
             {filteredInvites.map((invite) => {
-              const status = getStatus(invite);
+              const status = getInviteStatus(invite);
 
               return (
                 <tr key={invite.id}>
