@@ -5,6 +5,16 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useHoa } from "@/app/context/HoaContext";
 import RoleGuard from "@/components/RoleGuard";
 
+// 🟢 RECHARTS IMPORT (ADDED)
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -75,7 +85,6 @@ export default function InvitationAnalyticsPage() {
     const total = invites.length;
 
     const accepted = invites.filter((i) => i.consumed).length;
-
     const revoked = invites.filter((i) => i.revoked).length;
 
     const expired = invites.filter(
@@ -101,22 +110,42 @@ export default function InvitationAnalyticsPage() {
   }, [invites]);
 
   // =========================
+  // EMAIL SENT METRIC
+  // =========================
+  const emailsSent = logs.filter(
+    (l) => l.action === "emailed"
+  ).length;
+
+  // =========================
+  // FUNNEL DATA (RECHARTS)
+  // =========================
+  const funnelData = [
+    {
+      stage: "Invites Created",
+      value: stats.total,
+    },
+    {
+      stage: "Emails Sent",
+      value: emailsSent,
+    },
+    {
+      stage: "Accepted",
+      value: stats.accepted,
+    },
+  ];
+
+  // =========================
   // LOADING STATE
   // =========================
   if (loading) {
     return (
       <RoleGuard>
-        <div style={{ padding: 30 }}>Loading analytics...</div>
+        <div style={{ padding: 30 }}>
+          Loading analytics...
+        </div>
       </RoleGuard>
     );
   }
-
-  // =========================
-  // EMAIL SENT METRIC (FUNNEL STEP)
-  // =========================
-  const emailsSent = logs.filter(
-    (l) => l.action === "emailed"
-  ).length;
 
   return (
     <RoleGuard>
@@ -139,22 +168,29 @@ export default function InvitationAnalyticsPage() {
         </div>
 
         {/* =========================
-            FUNNEL VISUALIZATION (NEW)
+            FUNNEL VISUALIZATION (RECHARTS)
         ========================= */}
-        <h2 style={{ marginTop: 30 }}>Invite Funnel</h2>
+        <div style={{ marginTop: 30 }}>
+          <h2>Invite Funnel</h2>
 
-        <div style={styles.funnelBox}>
-          <FunnelStep label="Invites Created" value={stats.total} />
-          <Arrow />
-          <FunnelStep label="Emails Sent" value={emailsSent} />
-          <Arrow />
-          <FunnelStep label="Accepted" value={stats.accepted} />
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              <BarChart data={funnelData}>
+                <XAxis dataKey="stage" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#28A8A8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* =========================
             ACTIVITY FEED
         ========================= */}
-        <h2 style={{ marginTop: 30 }}>Recent Activity</h2>
+        <h2 style={{ marginTop: 30 }}>
+          Recent Activity
+        </h2>
 
         <div style={styles.feed}>
           {logs.map((log) => (
@@ -180,26 +216,19 @@ export default function InvitationAnalyticsPage() {
 // COMPONENTS
 // =========================
 
-function Card({ label, value }: { label: string; value: any }) {
+function Card({
+  label,
+  value,
+}: {
+  label: string;
+  value: any;
+}) {
   return (
     <div style={styles.card}>
       <div style={styles.cardLabel}>{label}</div>
       <div style={styles.cardValue}>{value}</div>
     </div>
   );
-}
-
-function FunnelStep({ label, value }: any) {
-  return (
-    <div style={styles.funnelStep}>
-      <div style={{ fontSize: 12 }}>{label}</div>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function Arrow() {
-  return <div style={{ margin: "0 10px" }}>➡️</div>;
 }
 
 // =========================
@@ -230,25 +259,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 22,
     fontWeight: "bold",
     marginTop: 6,
-  },
-
-  funnelBox: {
-    display: "flex",
-    alignItems: "center",
-    marginTop: 20,
-    padding: 20,
-    border: "1px solid #eee",
-    borderRadius: 10,
-    background: "#fafafa",
-  },
-
-  funnelStep: {
-    padding: 15,
-    background: "#fff",
-    borderRadius: 8,
-    textAlign: "center",
-    minWidth: 140,
-    border: "1px solid #eee",
   },
 
   feed: {
