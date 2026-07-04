@@ -11,7 +11,8 @@ const supabase = createBrowserClient(
 export default function CreateBallotPage() {
   const [elections, setElections] = useState<any[]>([]);
   const [electionId, setElectionId] = useState("");
-  const [choice, setChoice] = useState("");
+  const [title, setTitle] = useState(""); // ✅ renamed from "choice"
+  const [question, setQuestion] = useState(""); // optional but now supported
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
@@ -42,15 +43,16 @@ export default function CreateBallotPage() {
   // CREATE BALLOT
   // ----------------------------
   const createBallot = async () => {
-    const cleanChoice = choice.trim();
+    const cleanTitle = title.trim();
+    const cleanQuestion = question.trim();
 
     if (!electionId) {
       alert("Please select an election");
       return;
     }
 
-    if (!cleanChoice) {
-      alert("Please enter a ballot option (YES / NO / etc)");
+    if (!cleanTitle) {
+      alert("Please enter a ballot option (YES / NO / ABSTAIN / Candidate Name)");
       return;
     }
 
@@ -58,7 +60,12 @@ export default function CreateBallotPage() {
 
     const { error } = await supabase.from("ballots").insert({
       election_id: electionId,
-      choice: cleanChoice,
+
+      // ✅ FIX: replace invalid "choice"
+      title: cleanTitle,
+
+      // optional structured field (safe with your schema)
+      question: cleanQuestion || null,
     });
 
     setLoading(false);
@@ -70,7 +77,8 @@ export default function CreateBallotPage() {
 
     alert("Ballot created!");
 
-    setChoice("");
+    setTitle("");
+    setQuestion("");
   };
 
   return (
@@ -99,6 +107,7 @@ export default function CreateBallotPage() {
             }}
           >
             <option value="">-- Select election --</option>
+
             {elections.length === 0 ? (
               <option disabled>No elections found</option>
             ) : (
@@ -112,14 +121,31 @@ export default function CreateBallotPage() {
         )}
       </div>
 
-      {/* -------------------- CHOICE INPUT -------------------- */}
+      {/* -------------------- BALLOT TITLE -------------------- */}
       <div style={{ marginTop: 20 }}>
         <label>Ballot Option</label>
 
         <input
-          value={choice}
-          onChange={(e) => setChoice(e.target.value)}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. YES, NO, ABSTAIN"
+          style={{
+            display: "block",
+            padding: 10,
+            marginTop: 5,
+            width: "100%",
+          }}
+        />
+      </div>
+
+      {/* -------------------- OPTIONAL QUESTION -------------------- */}
+      <div style={{ marginTop: 20 }}>
+        <label>Question (Optional)</label>
+
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Optional ballot question"
           style={{
             display: "block",
             padding: 10,

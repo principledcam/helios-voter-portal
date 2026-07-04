@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
+// 🧱 UI SYSTEM
+import {
+  PageHeader,
+  Section,
+  Card,
+  Spinner,
+} from "@/app/components/ui";
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -13,8 +21,11 @@ export default function AssociationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
 
+  // =========================
+  // LOAD DATA
+  // =========================
   useEffect(() => {
-    const load = async () => {
+    async function load() {
       try {
         const { data, error } = await supabase
           .from("associations")
@@ -25,82 +36,97 @@ export default function AssociationsPage() {
 
         setAssociations(data || []);
       } catch (err) {
+        console.error(err);
         setError(err);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     load();
   }, []);
 
+  // =========================
+  // LOADING
+  // =========================
   if (loading) {
     return (
-      <div style={{ padding: 30 }}>
-        Loading associations...
-      </div>
+      <>
+        <Section title="Loading Associations">
+          <Spinner />
+        </Section>
+      </>
     );
   }
 
+  // =========================
+  // ERROR
+  // =========================
   if (error) {
     return (
-      <div
-        style={{
-          padding: 30,
-          color: "red",
-        }}
-      >
-        Error loading associations
-      </div>
+      <>
+        <Section title="Associations">
+          <Card>
+            <p style={{ color: "red" }}>
+              Error loading associations.
+            </p>
+          </Card>
+        </Section>
+      </>
     );
   }
 
+  // =========================
+  // MAIN PAGE
+  // =========================
   return (
-    <div style={{ padding: 30 }}>
-      <h1>🏘️ Associations</h1>
+    <>
+      <PageHeader
+        title="🏘️ Associations"
+        subtitle="Manage homeowner associations within the platform"
+      />
 
-      {associations.length === 0 ? (
-        <p>No associations found.</p>
-      ) : (
-        associations.map((a: any) => (
-          <div
-            key={a.id}
-            style={{
-              border: "1px solid #eee",
-              padding: 12,
-              marginBottom: 12,
-              borderRadius: 8,
-              background: "#fff",
-            }}
-          >
-            <h3>{a.name}</h3>
+      <Section title="Association List">
+        {associations.length === 0 ? (
+          <Card>
+            <p>No associations found.</p>
+          </Card>
+        ) : (
+          associations.map((association) => (
+            <Card key={association.id}>
+              <h3>{association.name}</h3>
 
-            <p>
-              <strong>ID:</strong> {a.id}
-            </p>
-
-            {a.environment && (
               <p>
-                <strong>Environment:</strong>{" "}
-                {a.environment}
+                <strong>ID:</strong> {association.id}
               </p>
-            )}
 
-            {a.status && (
-              <p>
-                <strong>Status:</strong> {a.status}
-              </p>
-            )}
+              {association.environment && (
+                <p>
+                  <strong>Environment:</strong>{" "}
+                  {association.environment}
+                </p>
+              )}
 
-            {typeof a.contract_signed !== "undefined" && (
-              <p>
-                <strong>Contract Signed:</strong>{" "}
-                {a.contract_signed ? "Yes" : "No"}
-              </p>
-            )}
-          </div>
-        ))
-      )}
-    </div>
+              {association.status && (
+                <p>
+                  <strong>Status:</strong>{" "}
+                  {association.status}
+                </p>
+              )}
+
+              {typeof association.contract_signed !==
+                "undefined" && (
+                <p>
+                  <strong>Contract Signed:</strong>{" "}
+                  {association.contract_signed
+                    ? "Yes"
+                    : "No"}
+                </p>
+              )}
+            </Card>
+          ))
+        )}
+      </Section>
+    </>
   );
 }

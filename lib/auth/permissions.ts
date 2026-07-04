@@ -16,7 +16,7 @@ export async function getCurrentUserProfile() {
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile) return null;
 
@@ -48,9 +48,11 @@ export async function isHoaAdmin(
     .select("role")
     .eq("user_id", result.user.id)
     .eq("association_id", associationId)
-    .single();
+    .maybeSingle();
 
-  return data?.role === "hoa_admin";
+  return ["hoa_admin", "admin", "system_admin"].includes(
+  data?.role
+);
 }
 
 export async function isHoaMember(
@@ -65,13 +67,33 @@ export async function isHoaMember(
     .select("id")
     .eq("user_id", result.user.id)
     .eq("association_id", associationId)
-    .single();
+    .maybeSingle();
 
   return !!data;
 }
 
-export async function canManageHoa(
-  associationId: string
-) {
-  return await isHoaAdmin(associationId);
+export async function canManageHoa(associationId: string) {
+  const result = await getCurrentUserProfile();
+
+  if (!result) return false;
+
+  // system admin override (always allowed)
+  if (result.profile?.is_system_admin) return true;
+
+  const { data } = await supabase
+    .from("association_members")
+    .select("role")
+    .eq("user_id", result.user.id)
+    .eq("association_id", associationId)
+    .maybeSingle();
+
+  if (!data) return false;
+
+  const role = (data.role || "").toLowerCase();
+
+  return (
+    role === "hoa_admin" ||
+    role === "admin" ||
+    role === "owner"
+  );
 }

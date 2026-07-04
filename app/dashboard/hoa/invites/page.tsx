@@ -15,6 +15,9 @@ export default function InvitesPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // =========================
+  // SEND INVITE
+  // =========================
   const sendInvite = async () => {
     if (!activeHoa?.id) {
       alert("No HOA selected.");
@@ -31,8 +34,8 @@ export default function InvitesPage() {
     try {
       const code = crypto.randomUUID();
 
-      // STEP 1 — CREATE INVITE RECORD
-      const { data: invite, error } = await supabase
+      // STEP 1 — CREATE INVITE
+      const { error } = await supabase
         .from("association_invites")
         .insert({
           email: email.trim(),
@@ -42,9 +45,7 @@ export default function InvitesPage() {
             Date.now() + 7 * 86400000
           ).toISOString(),
           consumed: false,
-        })
-        .select()
-        .single();
+        });
 
       if (error) {
         alert(error.message);
@@ -65,24 +66,17 @@ export default function InvitesPage() {
           }
         );
 
-      // STEP 3 — REPORT RESULT
       if (emailError) {
-        console.error(
-          "Email Function Error:",
-          emailError
-        );
+        console.error("Email Function Error:", emailError);
 
         alert(
-          "Invite created successfully, but the email could not be sent. You can resend it later."
+          "Invite created successfully, but email failed. You can resend later."
         );
       } else {
-        alert(
-          "Invite created and email sent successfully!"
-        );
+        alert("Invite created and email sent successfully!");
       }
 
       setEmail("");
-
     } catch (err: any) {
       console.error(err);
 
@@ -95,52 +89,78 @@ export default function InvitesPage() {
     }
   };
 
+  // =========================
+  // MAIN UI
+  // =========================
   return (
-    <div style={{ padding: 30 }}>
+    <>
       <h1>✉️ Invite Member</h1>
 
-      <div
-        style={{
-          marginBottom: 20,
-          padding: 12,
-          background: "#f5f5f5",
-          borderRadius: 8,
-        }}
-      >
+      <div style={styles.hoaBox}>
         <strong>Active HOA:</strong>{" "}
         {activeHoa?.name || "No HOA Selected"}
       </div>
 
-      <input
-        placeholder="Email Address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{
-          width: "100%",
-          maxWidth: 500,
-          padding: 10,
-          marginBottom: 15,
-          border: "1px solid #ddd",
-          borderRadius: 6,
-        }}
-      />
+      <div style={styles.formBox}>
+        <input
+          placeholder="Email Address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={styles.input}
+        />
 
-      <br />
-
-      <button
-        onClick={sendInvite}
-        disabled={loading || !activeHoa}
-        style={{
-          padding: "10px 16px",
-          background: "#08224D",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? "Generating..." : "Generate Invite"}
-      </button>
-    </div>
+        <button
+          onClick={sendInvite}
+          disabled={loading || !activeHoa}
+          style={{
+            ...styles.button,
+            opacity: loading || !activeHoa ? 0.6 : 1,
+            cursor:
+              loading || !activeHoa
+                ? "not-allowed"
+                : "pointer",
+          }}
+        >
+          {loading
+            ? "Generating..."
+            : "Generate Invite"}
+        </button>
+      </div>
+    </>
   );
 }
+
+// =========================
+// STYLES
+// =========================
+const styles: Record<string, React.CSSProperties> = {
+  hoaBox: {
+    marginBottom: 20,
+    padding: 12,
+    background: "#f5f5f5",
+    borderRadius: 8,
+  },
+
+  formBox: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    maxWidth: 500,
+  },
+
+  input: {
+    width: "100%",
+    padding: 10,
+    border: "1px solid #ddd",
+    borderRadius: 6,
+  },
+
+  button: {
+    padding: "10px 16px",
+    background: "#08224D",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    fontWeight: 600,
+  },
+};

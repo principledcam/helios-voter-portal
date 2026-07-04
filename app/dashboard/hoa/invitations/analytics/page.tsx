@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { useEffect, useState } from "react";
 import { useHoa } from "@/app/context/HoaContext";
-import RoleGuard from "@/components/RoleGuard";
 
-// 🟢 RECHARTS IMPORT (ADDED)
+import {
+  PageHeader,
+  Section,
+  Card,
+  StatCard,
+  Spinner,
+} from "@/app/components/ui";
+
 import {
   ResponsiveContainer,
   BarChart,
@@ -15,38 +20,27 @@ import {
   Tooltip,
 } from "recharts";
 
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import {
+  getInviteMetrics,
+  getInviteFunnel,
+  getRecentInviteActivity,
+} from "@/lib/analytics/inviteAnalytics";
 
-type Invite = {
-  id: string;
-  email: string;
-  consumed: boolean;
-  revoked: boolean;
-  expires_at: string;
-  created_at: string;
-};
-
-type AuditLog = {
-  id: string;
-  invite_id: string;
-  action: string;
-  email: string;
-  created_at: string;
-};
+import { InviteMetrics } from "@/lib/analytics/analyticsTypes";
 
 export default function InvitationAnalyticsPage() {
   const { activeHoa } = useHoa();
 
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [metrics, setMetrics] = useState<InviteMetrics | null>(null);
+  const [funnel, setFunnel] = useState<any[]>([]);
+  const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (activeHoa?.id) {
       loadData();
+    } else {
+      setLoading(false);
     }
   }, [activeHoa?.id]);
 
@@ -55,337 +49,157 @@ export default function InvitationAnalyticsPage() {
 
     setLoading(true);
 
-    // =========================
-    // LOAD INVITES
-    // =========================
-    const { data: inviteData } = await supabase
-      .from("association_invites")
-      .select("*")
-      .eq("association_id", activeHoa.id);
+    try {
+      const [metricsData, funnelData, activityData] =
+        await Promise.all([
+          getInviteMetrics(activeHoa.id),
+          getInviteFunnel(activeHoa.id),
+          getRecentInviteActivity(activeHoa.id),
+        ]);
 
-    // =========================
-    // LOAD AUDIT LOGS
-    // =========================
-    const { data: logData } = await supabase
-      .from("invite_audit_logs")
-      .select("*")
-      .eq("association_id", activeHoa.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    setInvites(inviteData || []);
-    setLogs(logData || []);
-    setLoading(false);
+      setMetrics(metricsData);
+      setFunnel(funnelData || []);
+      setActivity(activityData || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // =========================
-  // DERIVED METRICS
-  // =========================
-  const stats = useMemo(() => {
-    const total = invites.length;
-
-    const accepted = invites.filter((i) => i.consumed).length;
-    const revoked = invites.filter((i) => i.revoked).length;
-
-    const expired = invites.filter(
-      (i) =>
-        !i.consumed &&
-        !i.revoked &&
-        new Date(i.expires_at) < new Date()
-    ).length;
-
-    const active = total - accepted - revoked - expired;
-
-    const successRate =
-      total === 0 ? 0 : Math.round((accepted / total) * 100);
-
-    return {
-      total,
-      accepted,
-      revoked,
-      expired,
-      active,
-      successRate,
-    };
-  }, [invites]);
-
-  // =========================
-  // EMAIL SENT METRIC
-  // =========================
-  const emailsSent = logs.filter(
-    (l) => l.action === "emailed"
-  ).length;
-
-  // =========================
-// CLICK METRIC
-// =========================
-const clicks = logs.filter(
-  (l) => l.action === "clicked"
-).length;
-
-// =========================
-// CONVERSION RATES
-// =========================
-const openRate =
-  stats.total === 0
-    ? 0
-    : (emailsSent / stats.total) * 100;
-
-const clickRate =
-  emailsSent === 0
-    ? 0
-    : (clicks / emailsSent) * 100;
-
-const acceptRate =
-  clicks === 0
-    ? 0
-    : (stats.accepted / clicks) * 100;
-
-const overallConversion =
-  stats.total === 0
-    ? 0
-    : (stats.accepted / stats.total) * 100;
-
-    // =========================
-// TREND CALCULATIONS
-// (Temporary until historical snapshots exist)
-// =========================
-
-const openTrend = 0;
-const clickTrend = 0;
-const acceptTrend = 0;
-const conversionTrend = 0;
-
-  // =========================
-  // FUNNEL DATA (RECHARTS)
-  // =========================
-  const funnelData = [
-    {
-      stage: "Invites Created",
-      value: stats.total,
-    },
-    {
-      stage: "Emails Sent",
-      value: emailsSent,
-    },
-    {
-      stage: "Accepted",
-      value: stats.accepted,
-    },
-  ];
-
-  // =========================
-  // LOADING STATE
-  // =========================
   if (loading) {
     return (
-      <RoleGuard>
-        <div style={{ padding: 30 }}>
-          Loading analytics...
-        </div>
-      </RoleGuard>
+      <Section title="Loading Invitation Analytics">
+        <Spinner />
+      </Section>
     );
   }
 
+  const safeMetrics = metrics ?? {
+    invitesCreated: 0,
+    emailsSent: 0,
+    accepted: 0,
+    openRate: 0,
+    clickRate: 0,
+    acceptanceRate: 0,
+    overallConversion: 0,
+  };
+
   return (
-    <RoleGuard>
-      <div style={{ padding: 30 }}>
-        <h1>📊 Invitation Analytics</h1>
+    <>
+      <PageHeader
+        title="📊 Invitation Analytics"
+        subtitle="Track invitation performance across your HOA"
+      />
 
-        {/* =========================
-            KPI CARDS
-        ========================= */}
-        <div style={styles.grid}>
-  <Card label="Total Invites" value={stats.total} />
-  <Card label="Active" value={stats.active} />
-  <Card label="Accepted" value={stats.accepted} />
-  <Card label="Expired" value={stats.expired} />
-  <Card label="Revoked" value={stats.revoked} />
-  <Card
-    label="Success Rate"
-    value={`${stats.successRate}%`}
-  />
+      <Section title="Key Performance Indicators">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3,1fr)",
+            gap: 12,
+          }}
+        >
+          <StatCard
+            label="Invites Created"
+            value={safeMetrics.invitesCreated}
+          />
 
-  <Card
-  label="Open Rate"
-  value={`${openRate.toFixed(1)}%`}
-  trend={openTrend}
-/>
+          <StatCard
+            label="Emails Sent"
+            value={safeMetrics.emailsSent}
+          />
 
-  <Card
-  label="Click Rate"
-  value={`${clickRate.toFixed(1)}%`}
-  trend={clickTrend}
-/>
+          <StatCard
+            label="Accepted"
+            value={safeMetrics.accepted}
+          />
 
-<Card
-  label="Acceptance Rate"
-  value={`${acceptRate.toFixed(1)}%`}
-  trend={acceptTrend}
-/>
+          <StatCard
+            label="Open Rate"
+            value={`${safeMetrics.openRate.toFixed(1)}%`}
+          />
 
-<Card
-  label="Overall Conversion"
-  value={`${overallConversion.toFixed(1)}%`}
-  trend={conversionTrend}
-/>
-</div>
+          <StatCard
+            label="Click Rate"
+            value={`${safeMetrics.clickRate.toFixed(1)}%`}
+          />
 
-        {/* =========================
-            FUNNEL VISUALIZATION (RECHARTS)
-        ========================= */}
-        <div style={{ marginTop: 30 }}>
-          <h2>Invite Funnel</h2>
+          <StatCard
+            label="Acceptance Rate"
+            value={`${safeMetrics.acceptanceRate.toFixed(
+              1
+            )}%`}
+          />
+        </div>
+      </Section>
 
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
-              <BarChart data={funnelData}>
+      <Section title="Invitation Funnel">
+        <Card>
+          <div style={{ height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={funnel}>
                 <XAxis dataKey="stage" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#28A8A8" />
+                <Bar
+                  dataKey="value"
+                  fill="#28A8A8"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
+      </Section>
 
-        {/* =========================
-            ACTIVITY FEED
-        ========================= */}
-        <h2 style={{ marginTop: 30 }}>
-          Recent Activity
-        </h2>
+      <Section title="Recent Activity">
+        <Card>
+          {activity.length === 0 ? (
+            <p>No activity found.</p>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              {activity.map((log: any) => (
+                <div
+                  key={log.id}
+                  style={{
+                    padding: 10,
+                    borderBottom:
+                      "1px solid #e5e5e5",
+                  }}
+                >
+                  <strong>{log.action}</strong>
 
-        <div style={styles.feed}>
-          {logs.map((log) => (
-            <div key={log.id} style={styles.logItem}>
-              <div>
-                <strong>{log.action}</strong>
-              </div>
-              <div style={{ fontSize: 12, color: "#666" }}>
-                {log.email || "system"}
-              </div>
-              <div style={{ fontSize: 11, color: "#999" }}>
-                {new Date(log.created_at).toLocaleString()}
-              </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#666",
+                    }}
+                  >
+                    {log.email || "system"}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#999",
+                    }}
+                  >
+                    {new Date(
+                      log.created_at
+                    ).toLocaleString()}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-    </RoleGuard>
+          )}
+        </Card>
+      </Section>
+    </>
   );
 }
-
-// =========================
-// COMPONENTS
-// =========================
-
-function Card({
-  label,
-  value,
-  trend,
-}: {
-  label: string;
-  value: any;
-  trend?: number;
-}) {
-  let borderColor = "#28A8A8";
-
-  const numeric =
-    typeof value === "string"
-      ? parseFloat(value)
-      : value;
-
-  if (
-    label.includes("Rate") ||
-    label.includes("Conversion")
-  ) {
-    if (numeric >= 80) borderColor = "#16A34A";
-    else if (numeric >= 60) borderColor = "#F59E0B";
-    else borderColor = "#DC2626";
-  }
-
-  return (
-    <div
-      style={{
-        ...styles.card,
-        borderLeft: `6px solid ${borderColor}`,
-      }}
-    >
-      <div style={styles.cardLabel}>
-        {label}
-      </div>
-
-      <div style={styles.cardValue}>
-        {value}
-      </div>
-
-      {trend !== undefined && (
-        <div
-          style={{
-            marginTop: 8,
-            fontSize: 13,
-            fontWeight: 600,
-            color:
-              trend > 0
-                ? "#16A34A"
-                : trend < 0
-                ? "#DC2626"
-                : "#666",
-          }}
-        >
-          {trend > 0 && "▲"}
-          {trend < 0 && "▼"}
-          {trend === 0 && "•"}{" "}
-          {Math.abs(trend).toFixed(1)}%
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =========================
-// STYLES
-// =========================
-
-const styles: Record<string, React.CSSProperties> = {
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 12,
-    marginTop: 20,
-  },
-
-  card: {
-  padding: 18,
-  background: "#fff",
-  border: "1px solid #e5e7eb",
-  borderRadius: 10,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-},
-
-  cardLabel: {
-    fontSize: 12,
-    color: "#777",
-  },
-
-  cardValue: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginTop: 6,
-  },
-
-  feed: {
-    marginTop: 10,
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-
-  logItem: {
-    padding: 10,
-    border: "1px solid #eee",
-    borderRadius: 6,
-    background: "#fafafa",
-  },
-};

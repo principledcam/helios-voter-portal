@@ -3,10 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useHoa } from "@/app/context/HoaContext";
-import RoleGuard from "@/components/RoleGuard";
+import { getInviteStatus } from "@/lib/invitations/inviteValidation";
+
 import {
-  getInviteStatus,
-} from "@/lib/invitations/inviteValidation";
+  PageHeader,
+  Section,
+  Card,
+  Spinner,
+} from "@/app/components/ui";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,9 +58,7 @@ export default function InvitationsPage() {
       .eq("association_id", activeHoa.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
-    }
+    if (error) console.error(error);
 
     setInvites(data || []);
     setLoading(false);
@@ -108,141 +110,160 @@ export default function InvitationsPage() {
 
   if (loading) {
     return (
-      <RoleGuard>
-        <div style={{ padding: 30 }}>
-          Loading invitations...
-        </div>
-      </RoleGuard>
+      <Section title="Loading Invitations">
+        <Spinner />
+      </Section>
     );
   }
 
   return (
-    <RoleGuard>
-      <div style={{ padding: 30 }}>
-        <h1>✉️ Invitations</h1>
+    <>
+      <PageHeader
+        title="✉️ Invitations"
+        subtitle="Manage HOA invitations"
+      />
 
-        <div
-          style={{
-            marginBottom: 20,
-            padding: 12,
-            background: "#f5f5f5",
-            borderRadius: 8,
-          }}
-        >
+      <Section title="Current HOA">
+        <Card>
           <strong>Active HOA:</strong>{" "}
           {activeHoa?.name || "No HOA Selected"}
-        </div>
+        </Card>
+      </Section>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginBottom: 20,
-          }}
-        >
-          <input
-            placeholder="Search email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: 10,
-              width: 300,
-            }}
-          />
+      <Section title="Filters">
+        <Card>
+          <div style={styles.filterBar}>
+            <input
+              placeholder="Search email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={styles.input}
+            />
 
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="accepted">Accepted</option>
-            <option value="expired">Expired</option>
-            <option value="revoked">Revoked</option>
-          </select>
-        </div>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={styles.select}
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="accepted">Accepted</option>
+              <option value="expired">Expired</option>
+              <option value="revoked">Revoked</option>
+            </select>
+          </div>
+        </Card>
+      </Section>
 
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-          }}
-        >
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Sent</th>
-              <th>Expires</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredInvites.map((invite) => {
-              const status = getInviteStatus(invite);
-
-              return (
-                <tr key={invite.id}>
-                  <td>{invite.email}</td>
-
-                  <td>{invite.role || "member"}</td>
-
-                  <td>{status}</td>
-
-                  <td>
-                    {new Date(
-                      invite.created_at
-                    ).toLocaleDateString()}
-                  </td>
-
-                  <td>
-                    {new Date(
-                      invite.expires_at
-                    ).toLocaleDateString()}
-                  </td>
-
-                  <td>
-                    {status === "Pending" && (
-                      <>
-                        <button
-                          onClick={() =>
-                            resendInvite(invite.id)
-                          }
-                        >
-                          Resend
-                        </button>{" "}
-                        <button
-                          onClick={() =>
-                            revokeInvite(invite.id)
-                          }
-                        >
-                          Revoke
-                        </button>
-                      </>
-                    )}
-
-                    {status === "Expired" && (
-                      <button
-                        onClick={() =>
-                          resendInvite(invite.id)
-                        }
-                      >
-                        Resend
-                      </button>
-                    )}
-
-                    {status === "Accepted" && "Accepted"}
-
-                    {status === "Revoked" && "Revoked"}
-                  </td>
+      <Section title="Invitations">
+        <Card>
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Sent</th>
+                  <th>Expires</th>
+                  <th>Actions</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </RoleGuard>
+              </thead>
+
+              <tbody>
+                {filteredInvites.map((invite) => {
+                  const status = getInviteStatus(invite);
+
+                  return (
+                    <tr key={invite.id}>
+                      <td>{invite.email}</td>
+                      <td>{invite.role || "member"}</td>
+                      <td>{status}</td>
+
+                      <td>
+                        {new Date(
+                          invite.created_at
+                        ).toLocaleDateString()}
+                      </td>
+
+                      <td>
+                        {new Date(
+                          invite.expires_at
+                        ).toLocaleDateString()}
+                      </td>
+
+                      <td>
+                        {status === "Pending" && (
+                          <>
+                            <button
+                              onClick={() =>
+                                resendInvite(invite.id)
+                              }
+                            >
+                              Resend
+                            </button>{" "}
+                            <button
+                              onClick={() =>
+                                revokeInvite(invite.id)
+                              }
+                            >
+                              Revoke
+                            </button>
+                          </>
+                        )}
+
+                        {status === "Expired" && (
+                          <button
+                            onClick={() =>
+                              resendInvite(invite.id)
+                            }
+                          >
+                            Resend
+                          </button>
+                        )}
+
+                        {status === "Accepted" && "Accepted"}
+                        {status === "Revoked" && "Revoked"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </Section>
+    </>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  filterBar: {
+    display: "flex",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  input: {
+    padding: 10,
+    width: 300,
+    borderRadius: 6,
+    border: "1px solid #ddd",
+  },
+
+  select: {
+    padding: 10,
+    borderRadius: 6,
+    border: "1px solid #ddd",
+  },
+
+  tableWrapper: {
+    overflowX: "auto",
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    background: "#fff",
+  },
+};

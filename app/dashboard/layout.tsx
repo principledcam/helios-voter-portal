@@ -1,4 +1,5 @@
-import SidebarLayout from "@/app/components/SidebarLayout";
+import RoleGuard from "@/app/components/RoleGuard";
+import DashboardShell from "@/app/components/layout/DashboardShell";
 
 export default function DashboardLayout({
   children,
@@ -6,8 +7,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarLayout>
-      {children}
-    </SidebarLayout>
+    <RoleGuard>
+  <DashboardShell>
+    {children}
+  </DashboardShell>
+</RoleGuard>
   );
 }

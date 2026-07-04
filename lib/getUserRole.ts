@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "./supabaseServer";
 
 export async function getUserRole() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },

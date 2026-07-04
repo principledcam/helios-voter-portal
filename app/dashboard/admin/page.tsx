@@ -3,6 +3,14 @@
 import Link from "next/link";
 import { useHoaQuery } from "@/app/hooks/useHoaQuery";
 
+// 🧱 UI SYSTEM
+import {
+  PageHeader,
+  Section,
+  Card,
+  Spinner,
+} from "@/app/components/ui";
+
 export default function AdminPage() {
   const {
     data: members,
@@ -25,114 +33,128 @@ export default function AdminPage() {
     loading: hoaLoading,
   } = useHoaQuery("associations");
 
+  // =========================
+  // LOADING
+  // =========================
   if (membersLoading || hoaLoading) {
     return (
-      <div style={{ padding: 20 }}>
-        Loading admin data...
-      </div>
+      <Section title="Loading Admin">
+        <Spinner />
+      </Section>
     );
   }
 
+  // =========================
+  // ERROR
+  // =========================
   if (membersError) {
     return (
-      <div style={{ padding: 20, color: "red" }}>
-        Error loading admin data
-      </div>
+      <Section title="Error">
+        <Card>
+          <div style={{ color: "red" }}>
+            Error loading admin data.
+          </div>
+        </Card>
+      </Section>
     );
   }
 
+  // =========================
+  // MAIN PAGE
+  // =========================
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Admin User Management</h1>
+    <>
+      <PageHeader
+        title="Admin User Management"
+        subtitle="Manage users, associations, invitations and elections"
+      />
 
-      <p style={{ color: "#666" }}>
-        Manage users and HOA assignments
-      </p>
-
-      {/* ADMIN ACTIONS */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
-          marginTop: 20,
-          marginBottom: 30,
-        }}
-      >
-        <Link href="/dashboard/hoa/associations" style={styles.button}>
-          🏘️ Manage Associations
-        </Link>
-
-        <Link href="/dashboard/hoa/members" style={styles.button}>
-          👥 Manage Members
-        </Link>
-
-        <Link href="/dashboard/hoa/invites" style={styles.button}>
-          ✉️ Invite Users
-        </Link>
-
-        <Link href="/dashboard/elections/create" style={styles.button}>
-          🗳️ Create Election
-        </Link>
-      </div>
-
-      {/* HOA SUMMARY */}
-      <div style={{ marginTop: 20 }}>
-        <h3>HOAs</h3>
-
-        {associations.length === 0 ? (
-          <p>No HOAs found</p>
-        ) : (
-          associations.map((hoa: any) => (
-            <div
-              key={hoa.id}
-              style={{
-                padding: 10,
-                borderBottom: "1px solid #eee",
-              }}
+      <Section title="Administration">
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            <Link
+              href="/dashboard/hoa/associations"
+              style={styles.button}
             >
-              🏛️ {hoa.name}
-            </div>
-          ))
-        )}
-      </div>
+              🏘️ Manage Associations
+            </Link>
 
-      {/* MEMBERS TABLE */}
-      <div style={{ marginTop: 30 }}>
-        <h3>Members (Current HOA Scope)</h3>
-
-        {members.length === 0 ? (
-          <p>No members found for this HOA</p>
-        ) : (
-          members.map((m: any) => (
-            <div
-              key={m.id}
-              style={{
-                padding: 10,
-                borderBottom: "1px solid #eee",
-              }}
+            <Link
+              href="/dashboard/hoa/members"
+              style={styles.button}
             >
-              <div>
-                <strong>User:</strong> {m.user_id}
-              </div>
+              👥 Manage Members
+            </Link>
 
-              <div>
-                <strong>Role:</strong> {m.role}
-              </div>
+            <Link
+              href="/dashboard/hoa/invites"
+              style={styles.button}
+            >
+              ✉️ Invite Users
+            </Link>
 
+            <Link
+              href="/dashboard/elections/create"
+              style={styles.button}
+            >
+              🗳️ Create Election
+            </Link>
+          </div>
+        </Card>
+      </Section>
+
+      <Section title="Associations">
+        <Card>
+          {associations.length === 0 ? (
+            <p>No associations found.</p>
+          ) : (
+            associations.map((hoa: any) => (
               <div
+                key={hoa.id}
                 style={{
-                  fontSize: 12,
-                  color: "#666",
+                  padding: 10,
+                  borderBottom: "1px solid #eee",
                 }}
               >
-                HOA: {m.associations?.name}
+                🏛️ {hoa.name}
               </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+            ))
+          )}
+        </Card>
+      </Section>
+
+      <Section title="Members">
+        <Card>
+          {members.length === 0 ? (
+            <p>No members found.</p>
+          ) : (
+            members.map((m: any) => (
+              <div
+                key={m.id}
+                style={{
+                  padding: 10,
+                  borderBottom: "1px solid #eee",
+                }}
+              >
+                <div>
+                  <strong>User:</strong> {m.user_id}
+                </div>
+
+                <div>
+                  <strong>Role:</strong> {m.role}
+                </div>
+              </div>
+            ))
+          )}
+        </Card>
+      </Section>
+    </>
   );
 }
 

@@ -19,8 +19,21 @@ export default function AdminResultsPage() {
     setLoading(true);
 
     const { data: votes } = await supabase
-      .from("votes")
-      .select("ballot_id, choice");
+  .from("votes")
+  .select(`
+    ballot_id,
+    choice,
+    ballots:ballot_id (
+      id,
+      title,
+      question,
+      election_id,
+      elections:election_id (
+        id,
+        title
+      )
+    )
+  `);
 
     if (!votes) {
       setResults([]);
@@ -31,19 +44,22 @@ export default function AdminResultsPage() {
     // Aggregate counts
     const grouped: Record<string, any> = {};
 
-    votes.forEach((v) => {
-      const key = v.ballot_id + "::" + v.choice;
+votes.forEach((v: any) => {
+  const key = v.ballot_id + "::" + v.choice;
 
-      if (!grouped[key]) {
-        grouped[key] = {
-          ballot_id: v.ballot_id,
-          choice: v.choice,
-          count: 0,
-        };
-      }
+  if (!grouped[key]) {
+    grouped[key] = {
+      ballot_id: v.ballot_id,
+      choice: v.choice,
+      count: 0,
 
-      grouped[key].count += 1;
-    });
+      // ✅ THIS IS THE KEY FIX (JOINED DATA)
+      ballot: v.ballots, // election + ballot metadata
+    };
+  }
+
+  grouped[key].count += 1;
+});
 
     setResults(Object.values(grouped));
     setLoading(false);
@@ -88,9 +104,13 @@ export default function AdminResultsPage() {
         <div style={styles.grid}>
           {results.map((r, i) => (
             <div key={i} style={styles.box}>
-              <h3>{r.choice}</h3>
+              <h3>
+  {r.ballot?.title ?? "Ballot"} — {r.choice}
+</h3>
               <p style={styles.count}>{r.count} votes</p>
-              <small>{r.ballot_id}</small>
+              <small>
+  {r.ballot?.elections?.title ?? "Unknown Election"}
+</small>
             </div>
           ))}
         </div>

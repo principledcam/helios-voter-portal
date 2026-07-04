@@ -1,124 +1,228 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
 import { useHoa } from "@/app/context/HoaContext";
 
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 🧱 UI SYSTEM
+import {
+  PageHeader,
+  Section,
+  Card,
+  StatCard,
+  Spinner,
+} from "@/app/components/ui";
+
+// =========================
+// TYPES
+// =========================
+type Election = {
+  id: string;
+  title: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+};
+
+type VoteStats = {
+  totalVoters: number;
+  totalVotes: number;
+  participationRate: number;
+};
 
 export default function ElectionsPage() {
-  const router = useRouter();
-
-  // 🧠 HOA IS SINGLE SOURCE OF TRUTH
   const { activeHoa } = useHoa();
 
-  const [elections, setElections] = useState<any[]>([]);
+  const [elections, setElections] = useState<Election[]>([]);
+  const [stats, setStats] = useState<VoteStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // =========================
+  // LOAD DATA
+  // =========================
   useEffect(() => {
-    if (!activeHoa?.id) return;
-
-    const load = async () => {
-      setLoading(true);
-
-      // 🟢 FINAL QUERY (HOA-SCOPED ONLY)
-      const { data, error } = await supabase
-        .from("elections")
-        .select("*")
-        .eq("association_id", activeHoa.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error(error.message);
-      }
-
-      setElections(data || []);
-      setLoading(false);
-    };
-
-    load();
+    if (activeHoa?.id) {
+      loadData();
+    }
   }, [activeHoa?.id]);
 
+  async function loadData() {
+    if (!activeHoa?.id) return;
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        `/api/elections?hoa=${activeHoa.id}`
+      );
+
+      const data = await res.json();
+
+      setElections(data.elections || []);
+      setStats(data.stats || null);
+    } catch (err) {
+      console.error(err);
+    }
+
+    setLoading(false);
+  }
+
+  // =========================
+  // LOADING STATE
+  // =========================
+  if (loading) {
+    return (
+      <>
+        <Section title="Loading Elections">
+          <Spinner />
+        </Section>
+      </>
+    );
+  }
+
+  // =========================
+  // MAIN PAGE
+  // =========================
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>Elections</h1>
+    <>
+      {/* =========================
+          PAGE HEADER
+      ========================= */}
+      <PageHeader
+        title="🗳️ Elections"
+        subtitle="Manage HOA voting, ballots, and election cycles"
+      />
 
-      <div style={styles.activeHoa}>
-        Active HOA: {activeHoa?.name || "None selected"}
-      </div>
-
-      {loading && <p>Loading...</p>}
-
-      {!loading && elections.length === 0 && (
-        <p>No elections found.</p>
-      )}
-
-      {elections.map((e) => (
+      {/* =========================
+          ELECTION OVERVIEW
+      ========================= */}
+      <Section title="Election Overview">
         <div
-          key={e.id}
-          style={styles.card}
-          onClick={() =>
-            router.push(`/dashboard/elections/${e.id}`)
-          }
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+          }}
         >
-          <h3>{e.title}</h3>
+          <StatCard
+            label="Total Elections"
+            value={elections.length}
+          />
 
-          <p style={styles.meta}>
-            {e.description || "No description"}
-          </p>
+          <StatCard
+            label="Active Elections"
+            value={
+              elections.filter(
+                (e) => e.status === "active"
+              ).length
+            }
+          />
 
-          <div style={styles.id}>
-            ID: {e.id}
-          </div>
+          <StatCard
+            label="Completed Elections"
+            value={
+              elections.filter(
+                (e) => e.status === "completed"
+              ).length
+            }
+          />
         </div>
-      ))}
-    </div>
+      </Section>
+
+      {/* =========================
+          VOTING PERFORMANCE
+      ========================= */}
+      <Section title="Voting Performance">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+          }}
+        >
+          <StatCard
+            label="Total Voters"
+            value={stats?.totalVoters ?? 0}
+          />
+
+          <StatCard
+            label="Total Votes"
+            value={stats?.totalVotes ?? 0}
+          />
+
+          <StatCard
+            label="Participation Rate"
+            value={`${stats?.participationRate?.toFixed(1) ?? "0.0"}%`}
+          />
+        </div>
+      </Section>
+
+      {/* =========================
+          ELECTION LIST
+      ========================= */}
+      <Section title="All Elections">
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {elections.length === 0 ? (
+              <div
+                style={{
+                  padding: 16,
+                  color: "#666",
+                }}
+              >
+                No elections found.
+              </div>
+            ) : (
+              elections.map((election) => (
+                <div
+                  key={election.id}
+                  style={{
+                    padding: 12,
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 600,
+                    }}
+                  >
+                    {election.title}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#666",
+                    }}
+                  >
+                    {election.status.toUpperCase()}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#999",
+                    }}
+                  >
+                    {new Date(
+                      election.start_date
+                    ).toLocaleDateString()}{" "}
+                    →{" "}
+                    {new Date(
+                      election.end_date
+                    ).toLocaleDateString()}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </Section>
+    </>
   );
 }
-
-/* =========================
-   STYLES
-========================= */
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    maxWidth: 800,
-    padding: 20,
-  },
-
-  title: {
-    fontSize: 26,
-    marginBottom: 10,
-  },
-
-  activeHoa: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 20,
-  },
-
-  card: {
-    padding: 16,
-    border: "1px solid #eee",
-    borderRadius: 10,
-    background: "#fff",
-    marginBottom: 12,
-    cursor: "pointer",
-  },
-
-  meta: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 4,
-  },
-
-  id: {
-    fontSize: 11,
-    color: "#aaa",
-    marginTop: 8,
-  },
-};

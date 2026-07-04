@@ -6,6 +6,14 @@ import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { logAudit } from "@/lib/audit/logAudit";
 
+// 🧱 UI SYSTEM
+import {
+  PageHeader,
+  Section,
+  Card,
+  Spinner,
+} from "@/app/components/ui";
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -21,7 +29,6 @@ export default function MembersPage() {
     refetch,
   } = useHoaQuery("association_members");
 
-  // 🟢 REAL PROFILE LOADING (SYSTEM ADMIN CHECK FIX)
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -42,10 +49,13 @@ export default function MembersPage() {
     loadProfile();
   }, []);
 
-  // 🟢 SYSTEM ADMIN FLAG
-  const canPromoteToAdmin = profile?.is_system_admin === true;
+  const canPromoteToAdmin =
+    profile?.is_system_admin === true;
 
-  const updateRole = async (id: string, newRole: string) => {
+  async function updateRole(
+    id: string,
+    newRole: string
+  ) {
     const { data: existingMember } = await supabase
       .from("association_members")
       .select("*")
@@ -69,42 +79,40 @@ export default function MembersPage() {
       return;
     }
 
-    const { data: authData } = await supabase.auth.getUser();
-    const authUser = authData?.user;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     try {
       await logAudit({
         supabase,
         action: "role_updated",
         user_id: existingMember.user_id,
-        association_id: existingMember.association_id,
+        association_id:
+          existingMember.association_id,
         entity_type: "association_member",
         entity_id: id,
-
-        performed_by: authUser?.id,
-        performed_by_name: authUser?.email,
-
+        performed_by: user?.id,
+        performed_by_name: user?.email,
         before_state: {
           role: oldRole,
         },
-
         after_state: {
           role: newRole,
         },
-
         metadata: {
-          updated_by: authUser?.id,
-          updated_by_name: authUser?.email,
+          updated_by: user?.id,
+          updated_by_name: user?.email,
         },
       });
     } catch (err: any) {
-      console.error("Audit log failed:", err.message);
+      console.error(err);
     }
 
     await refetch();
-  };
+  }
 
-  const removeMember = async (id: string) => {
+  async function removeMember(id: string) {
     const { error } = await supabase
       .from("association_members")
       .delete()
@@ -116,71 +124,113 @@ export default function MembersPage() {
     }
 
     await refetch();
-  };
-
-  if (loading) {
-    return <div style={{ padding: 30 }}>Loading members...</div>;
   }
 
-  if (error) {
+  // =========================
+  // LOADING
+  // =========================
+
+  if (loading) {
     return (
-      <div style={{ padding: 30, color: "red" }}>
-        Error loading members
-      </div>
+      <>
+        <Section title="Loading Members">
+          <Spinner />
+        </Section>
+      </>
     );
   }
 
+  // =========================
+  // ERROR
+  // =========================
+
+  if (error) {
+    return (
+      <>
+        <Section title="Error">
+          <Card>
+            <p style={{ color: "red" }}>
+              Error loading members.
+            </p>
+          </Card>
+        </Section>
+      </>
+    );
+  }
+
+  // =========================
+  // MAIN PAGE
+  // =========================
+
   return (
-    <div style={{ padding: 30 }}>
-      <h1>👥 Members</h1>
+    <>
+      <PageHeader
+        title="👥 Members"
+        subtitle={`Manage members for ${
+          activeHoa?.name ?? "Active HOA"
+        }`}
+      />
 
-      {members.length === 0 ? (
-        <p>No members found for the selected HOA.</p>
-      ) : (
-        members.map((m: any) => (
-          <div
-            key={m.id}
-            style={{
-              border: "1px solid #eee",
-              padding: 10,
-              marginBottom: 10,
-              borderRadius: 8,
-              background: "#fff",
-            }}
-          >
+      <Section title="Association Members">
+        {members.length === 0 ? (
+          <Card>
             <p>
-              <strong>User:</strong> {m.user_id}
+              No members found for the selected HOA.
             </p>
-
-            <p>
-              <strong>Role:</strong> {m.role}
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                marginTop: 10,
-              }}
+          </Card>
+        ) : (
+          members.map((m: any) => (
+            <Card
+              key={m.id}
+              style={{ marginBottom: 12 }}
             >
-              {/* 🟢 SYSTEM ADMIN ONLY CONTROL */}
-              {canPromoteToAdmin && (
-                <button onClick={() => updateRole(m.id, "admin")}>
-                  Make Admin
+              <p>
+                <strong>User:</strong> {m.user_id}
+              </p>
+
+              <p>
+                <strong>Role:</strong> {m.role}
+              </p>
+
+              <div style={styles.actions}>
+                {canPromoteToAdmin && (
+                  <button
+                    onClick={() =>
+                      updateRole(m.id, "admin")
+                    }
+                  >
+                    Make Admin
+                  </button>
+                )}
+
+                <button
+                  onClick={() =>
+                    updateRole(m.id, "member")
+                  }
+                >
+                  Make Member
                 </button>
-              )}
 
-              <button onClick={() => updateRole(m.id, "member")}>
-                Make Member
-              </button>
-
-              <button onClick={() => removeMember(m.id)}>
-                Remove
-              </button>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
+                <button
+                  onClick={() =>
+                    removeMember(m.id)
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+            </Card>
+          ))
+        )}
+      </Section>
+    </>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  actions: {
+    display: "flex",
+    gap: 10,
+    marginTop: 12,
+  },
+};

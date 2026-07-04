@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useHoa } from "@/app/context/HoaContext";
 
+// UI SYSTEM
+import {
+  PageHeader,
+  Section,
+  Card,
+} from "@/app/components/ui";
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -12,7 +19,6 @@ const supabase = createBrowserClient(
 
 export default function CreateElectionPage() {
   const router = useRouter();
-
   const { activeHoa } = useHoa();
 
   const [user, setUser] = useState<any>(null);
@@ -49,7 +55,7 @@ export default function CreateElectionPage() {
       return;
     }
 
-    const { data: election, error: e1 } = await supabase
+    const { data: election, error } = await supabase
       .from("elections")
       .insert({
         title,
@@ -68,8 +74,8 @@ export default function CreateElectionPage() {
 
     setLoading(false);
 
-    if (e1 || !election) {
-      alert(e1?.message || "Error creating election");
+    if (error || !election) {
+      alert(error?.message || "Error creating election");
       return;
     }
 
@@ -77,82 +83,113 @@ export default function CreateElectionPage() {
   };
 
   return (
-    <div style={{ maxWidth: 800 }}>
-      <h1>Create Election</h1>
+    <>
+      {/* =========================
+          HEADER
+      ========================= */}
+      <PageHeader
+        title="🗳️ Create Election"
+        subtitle="Configure a new HOA voting session"
+      />
 
-      <div
-        style={{
-          background: "#fff",
-          padding: 20,
-          borderRadius: 10,
-        }}
-      >
-        <h3>Step 1: Election Setup</h3>
+      {/* =========================
+          FORM SECTION
+      ========================= */}
+      <Section title="Election Setup">
+        <Card>
+          <div style={styles.form}>
+            {/* TITLE */}
+            <input
+              placeholder="Election title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={styles.input}
+            />
 
-        <input
-          placeholder="Election title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            marginBottom: 10,
-          }}
-        />
+            {/* DESCRIPTION */}
+            <textarea
+              placeholder="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={styles.textarea}
+            />
 
-        <textarea
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            marginBottom: 10,
-          }}
-        />
+            {/* OPTIONS */}
+            <label style={styles.label}>
+              <input
+                type="checkbox"
+                checked={anonymous}
+                onChange={(e) => setAnonymous(e.target.checked)}
+              />
+              Anonymous voting
+            </label>
 
-        <label
-          style={{
-            display: "block",
-            marginBottom: 8,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={anonymous}
-            onChange={(e) => setAnonymous(e.target.checked)}
-          />{" "}
-          Anonymous voting
-        </label>
+            <label style={styles.label}>
+              <input
+                type="checkbox"
+                checked={allowMultipleVotes}
+                onChange={(e) =>
+                  setAllowMultipleVotes(e.target.checked)
+                }
+              />
+              Allow multiple votes
+            </label>
 
-        <label
-          style={{
-            display: "block",
-            marginBottom: 15,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={allowMultipleVotes}
-            onChange={(e) => setAllowMultipleVotes(e.target.checked)}
-          />{" "}
-          Allow multiple votes
-        </label>
-
-        <button
-          onClick={createElection}
-          style={{
-            padding: 10,
-            background: "#08224D",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          {loading ? "Creating..." : "Create Election"}
-        </button>
-      </div>
-    </div>
+            {/* SUBMIT BUTTON */}
+            <button
+              onClick={createElection}
+              disabled={loading}
+              style={styles.button}
+            >
+              {loading ? "Creating..." : "Create Election"}
+            </button>
+          </div>
+        </Card>
+      </Section>
+    </>
   );
 }
+
+// =========================
+// STYLES
+// =========================
+const styles: Record<string, React.CSSProperties> = {
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+
+  input: {
+    width: "100%",
+    padding: 10,
+    borderRadius: 6,
+    border: "1px solid #ddd",
+  },
+
+  textarea: {
+    width: "100%",
+    padding: 10,
+    borderRadius: 6,
+    border: "1px solid #ddd",
+    minHeight: 120,
+  },
+
+  label: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+  },
+
+  button: {
+    padding: 12,
+    background: "#08224D",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: 600,
+    marginTop: 10,
+  },
+};
