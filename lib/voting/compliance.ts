@@ -1,13 +1,33 @@
-import crypto from "crypto";
-
-export function hashVoterReference(userId: string, electionId: string) {
-  return crypto
-    .createHash("sha256")
-    .update(`${userId}:${electionId}:florida-718-128`)
-    .digest("hex");
+function toHex(bytes: Uint8Array) {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-export function createVoteReceipt({
+async function hashText(value: string) {
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(value)
+    );
+    return toHex(new Uint8Array(digest));
+  }
+
+  // Safari / older environments fallback
+  return toHex(
+    new Uint8Array(
+      await import("crypto").then((mod) =>
+        mod.createHash("sha256").update(value).digest()
+      )
+    )
+  );
+}
+
+export async function hashVoterReference(userId: string, electionId: string) {
+  return hashText(`${userId}:${electionId}:florida-718-128`);
+}
+
+export async function createVoteReceipt({
   electionId,
   ballotId,
   optionId,
@@ -18,13 +38,9 @@ export function createVoteReceipt({
   optionId: string;
   voterHash: string;
 }) {
-  const payload = `${electionId}:${ballotId}:${optionId}:${voterHash}`;
-  return crypto.createHash("sha256").update(payload).digest("hex");
+  return hashText(`${electionId}:${ballotId}:${optionId}:${voterHash}`);
 }
 
-export function createBallotChoiceHash(optionId: string, ballotId: string) {
-  return crypto
-    .createHash("sha256")
-    .update(`${ballotId}:${optionId}:ballot-choice`)
-    .digest("hex");
+export async function createBallotChoiceHash(optionId: string, ballotId: string) {
+  return hashText(`${ballotId}:${optionId}:ballot-choice`);
 }
